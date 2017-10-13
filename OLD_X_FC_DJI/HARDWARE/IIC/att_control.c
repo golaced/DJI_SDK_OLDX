@@ -767,7 +767,7 @@ u8 tar_buf[20];
 u8 tar_cnt;
 u8 over_time;
 float time_fly;
-u8 m100_gps_in=0;
+u8 m100_gps_in=0;//state_v
 #if USE_M100
 #define GPS_ERO 300
 #define GPS_ERO_S 350

@@ -9,7 +9,7 @@
  *  Copyright 2016 DJI. All right reserved.
  *
  * */
-
+#include "DJI_API.h"
 #include "Receive.h"
 #include "math.h"
 #include "LocalNavigation.h"
@@ -145,28 +145,30 @@ void SEND_DJI1(void)
 	data_to_send[_cnt++]=BYTE1(_temp);
 	data_to_send[_cnt++]=BYTE0(_temp);
 	
-	_temp = (vs16)(m100.State);//ultra_distance;
+	_temp = (vs16)(m100.State&&activate_s);//ultra_distance;
 	data_to_send[_cnt++]=BYTE0(_temp);
 	_temp = (vs16)(m100.GPS_S);//GPS_S;
 	data_to_send[_cnt++]=BYTE0(_temp);
-//	_temp = (vs16)(m100.spd[0]*1000);//ultra_distance;
-//	data_to_send[_cnt++]=BYTE1(_temp);
-//	data_to_send[_cnt++]=BYTE0(_temp);
-//	_temp = (vs16)(m100.spd[1]*1000);//ultra_distance;
-//	data_to_send[_cnt++]=BYTE1(_temp);
-//	data_to_send[_cnt++]=BYTE0(_temp);
-//	_temp = (vs16)(m100.spd[2]*1000);//ultra_distance;
-//	data_to_send[_cnt++]=BYTE1(_temp);
-//	data_to_send[_cnt++]=BYTE0(_temp);
-	_temp = ultra_distance;
+	_temp = (vs16)(m100.spd[0]*1000);//ultra_distance;
 	data_to_send[_cnt++]=BYTE1(_temp);
 	data_to_send[_cnt++]=BYTE0(_temp);
-	_temp = Laser_distance;
+	_temp = (vs16)(m100.spd[1]*1000);//ultra_distance;
 	data_to_send[_cnt++]=BYTE1(_temp);
 	data_to_send[_cnt++]=BYTE0(_temp);
-	_temp = Laser_ST;
+	_temp = (vs16)(m100.spd[2]*1000);//ultra_distance;
 	data_to_send[_cnt++]=BYTE1(_temp);
 	data_to_send[_cnt++]=BYTE0(_temp);
+	
+	
+//	_temp = ultra_distance;
+//	data_to_send[_cnt++]=BYTE1(_temp);
+//	data_to_send[_cnt++]=BYTE0(_temp);
+//	_temp = Laser_distance;
+//	data_to_send[_cnt++]=BYTE1(_temp);
+//	data_to_send[_cnt++]=BYTE0(_temp);
+//	_temp = Laser_ST;
+//	data_to_send[_cnt++]=BYTE1(_temp);
+//	data_to_send[_cnt++]=BYTE0(_temp);
 	
 	data_to_send[3] = _cnt-4;
 
@@ -265,10 +267,10 @@ void TerminalCommand::terminalCommandHandler(CoreAPI* api, Flight* flight)
     }
     else if (cmdIn[3] == 0x02)
     {//for display ur hex2int
-      printf("roll_or_x =%f\n", hex2Float(cmdIn[5], cmdIn[6]));
-      printf("pitch_or_y =%f\n", hex2Float(cmdIn[7], cmdIn[8]));
-      printf("thr_z =%f\n", hex2Float(cmdIn[9], cmdIn[10]));
-      printf("yaw =%f\n\n", hex2Float(cmdIn[11], cmdIn[12]));
+//      printf("roll_or_x =%f\n", hex2Float(cmdIn[5], cmdIn[6]));
+//      printf("pitch_or_y =%f\n", hex2Float(cmdIn[7], cmdIn[8]));
+//      printf("thr_z =%f\n", hex2Float(cmdIn[9], cmdIn[10]));
+//      printf("yaw =%f\n\n", hex2Float(cmdIn[11], cmdIn[12]));
     }
     break;
 
@@ -329,7 +331,7 @@ void TerminalCommand::terminalCommandHandler(CoreAPI* api, Flight* flight)
 				m100.Yaw=api->getBroadcastData().gimbal.yaw;
 				m100.Bat=api->getBroadcastData().battery;	
 				m100.GPS_S=api->getBroadcastData().pos.health;	
-				m100.State=api->getBroadcastData().ctrlInfo.flightStatus;	
+				m100.State=api->getBroadcastData().status;	
 					
 				m100.Rc_p=api->getBroadcastData().rc.pitch;		
 				m100.Rc_r=api->getBroadcastData().rc.roll;
@@ -405,7 +407,7 @@ void USART2_IRQHandler(void)
         myTerminal.rxIndex = 0;
         myTerminal.cmdReadyFlag = 1;
 				if(cnt++>20){cnt=0;
-					 Ultra_Duty();
+					Ultra_Duty();
 				}
 				IWDG_Feed();//Î¹¹·
       }

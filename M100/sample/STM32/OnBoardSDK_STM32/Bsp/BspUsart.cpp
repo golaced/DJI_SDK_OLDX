@@ -173,24 +173,19 @@ void Sonar_Init(u32 br_num)//-------SONAR
   GPIO_Init(GPIOB, &GPIO_InitStructure); 
 
 	
-   //USART1 初始化设置
-	USART_InitStructure.USART_BaudRate = br_num;//波特率设置
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8位数据格式
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
-	USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//收发模式
-  USART_Init(USART3, &USART_InitStructure); //初始化串口1
-	
-  USART_Cmd(USART3, ENABLE);  //使能串口1 
-	
-	USART_ClearFlag(USART3, USART_FLAG_TC);
-	
+  USART_InitStructure.USART_BaudRate = br_num;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 
-	//使能USART2接收中断
-	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-	//使能USART2
-	USART_Cmd(USART3, ENABLE); 
+  USART_Init(USART3, &USART_InitStructure);
+  USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+
+  USART_Cmd(USART3, ENABLE);
+  while (USART_GetFlagStatus(USART3, USART_FLAG_TXE) != SET)
+    ;
 }
 
 s8 ultra_start_f;

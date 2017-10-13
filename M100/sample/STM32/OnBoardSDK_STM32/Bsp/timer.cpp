@@ -107,6 +107,7 @@ void SysTick_Handler(void)
   }
   tick++;
 }
+
 void TIM1_UP_TIM10_IRQHandler(void)
 {
   if (TIM_GetITStatus(TIM1, TIM_IT_Update) == SET)

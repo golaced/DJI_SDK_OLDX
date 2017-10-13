@@ -186,21 +186,22 @@ int main()
 {static u16 cnt;
   BSPinit();
   delay_nms(30);
-  printf("This is the example App to test DJI onboard SDK on STM32F4Discovery Board! \r\n");
-  printf("Refer to \r\n");
-  printf("https://developer.dji.com/onboard-sdk/documentation/github-platform-docs/STM32/README.html \r\n");
-  printf("for supported commands!\r\n");
-  printf("Board Initialization Done!\r\n");
-  delay_nms(1000);
+//  printf("This is the example App to test DJI onboard SDK on STM32F4Discovery Board! \r\n");
+//  printf("Refer to \r\n");
+//  printf("https://developer.dji.com/onboard-sdk/documentation/github-platform-docs/STM32/README.html \r\n");
+//  printf("for supported commands!\r\n");
+//  printf("Board Initialization Done!\r\n");
+  //delay_nms(1000);
 
   //! Change the version string to your platform/version as defined in DJI_Version.h
   coreApi->setVersion(SDK_VERSION);
-  delay_nms(200);
-  printf("API Version Set Done!\r\n");
+  delay_nms(50);
+  //printf("API Version Set Done!\r\n");
   LED_Init();
   uint32_t runOnce = 1;
   uint32_t next500MilTick;
 	IWDG_Init(4,1000); //与分频数为64,重载值为500,溢出时间为1s	
+	
   while (1)
   {
     // One time automatic activation
@@ -218,6 +219,7 @@ int main()
       delay_nms(50);
 
       next500MilTick = driver->getTimeStamp() + 10;
+			
     }
 
     if (driver->getTimeStamp() >= next500MilTick)
@@ -230,8 +232,8 @@ int main()
       // Handle user commands from serial (USART2)
 
 			 myTerminal.terminalCommandHandler(coreApi, &flight);
-			if(!rst_board)//M100 conncet
-				IWDG_Feed();//喂狗
+//			if(!rst_board)//M100 conncet
+//				IWDG_Feed();//喂狗
     }
 
 		//#define   DEG2RAD 0.01745329252

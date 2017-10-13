@@ -12,7 +12,7 @@
 #include "DJI_API.h"
 #include <string.h>
 #include <stdio.h>
-
+int activate_s;
 using namespace DJI;
 using namespace DJI::onboardSDK;
 
@@ -496,7 +496,7 @@ void CoreAPI::activateCallback(CoreAPI *api, Header *protocolHeader, UserData us
     {
       case ACK_ACTIVE_SUCCESS:
         API_LOG(api->serialDevice, STATUS_LOG, "Activated successfully\n");
-
+        activate_s=1;
         if (api->accountData.encKey)
           api->setKey(api->accountData.encKey);
         return;

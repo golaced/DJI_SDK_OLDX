@@ -123,115 +123,142 @@ void AHRSupdate(float T,float gx, float gy, float gz, float ax, float ay, float 
   Yaw1 = -atan2(2 * q1 * q2 + 2 * q0 * q3, -2 * q2*q2 - 2 * q3 * q3 + 1)* 57.3; // yaw  
 }
 
+#define Kp_Yaw 0.3f
+float accConfidenceDecay 			  =	5.2f;
+float accConfidence      = 1.0f; 
+#define HardFilter(O,N)  ((O)*0.9f+(N)*0.1f)
+#define accelOneG 10
+void calculateAccConfidence(float accMag_in)
+{
+	// G.K. Egan (C) computes confidence in accelerometers when
+	// aircraft is being accelerated over and above that due to gravity
 
+	static float accMagP = 1.0f;
+
+	float accMag =accMag_in/ accelOneG;  // HJI Added to convert MPS^2 to G's
+
+	accMagP  = HardFilter(accMagP, accMag );
+
+
+	accConfidence=((accConfidenceDecay * sqrt(fabs(accMagP - 1.0f))));
+  if(accConfidence>1)
+		accConfidence=1;
+	if(accConfidence<0)
+		accConfidence=0;
+}
 //use
 float mag_norm ,mag_norm_xyz ;
+float yaw_mag,Kp_use;
 void IMUupdate(float half_T,float gx, float gy, float gz, float ax, float ay, float az,float *rol,float *pit,float *yaw) 
-{		
+{	static u8 init;
 	float ref_err_lpf_hz;
 	static float yaw_correct;
 	float mag_norm_tmp;
 	static xyz_f_t mag_tmp;
-	static float yaw_mag;
-
+	
+	if(!init)
+	{
+	init=1;
+	ref.err_tmp.x=ref.err_tmp.y=ref.err_tmp.z=0;
+	ref.err.x=ref.err.y=ref.err.z=0;
+	ref.err_lpf.x=ref.err_lpf.y=ref.err_lpf.z=0;
+	ref.err_Int.x=ref.err_Int.y=ref.err_Int.z=0;
+	ref.g.x=ref.g.y=ref.g.z=0;
+	}
 	mag_norm_tmp = 20 *(6.28f *half_T);	
 	
 	mag_norm_xyz = my_sqrt(ak8975.Mag_Val.x * ak8975.Mag_Val.x + ak8975.Mag_Val.y * ak8975.Mag_Val.y + ak8975.Mag_Val.z * ak8975.Mag_Val.z);
-	
+	if(mag_norm_xyz==0)
+		mag_norm_xyz=0.0001;
 		if( mag_norm_xyz != 0)
 	{
-		switch(imu_sel)
-	{
-		case 0:
 		mag_tmp.x += mag_norm_tmp *( (float)ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
 		mag_tmp.y += mag_norm_tmp *( (float)ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
 		mag_tmp.z += mag_norm_tmp *( (float)ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 1:
-		mag_tmp.x += mag_norm_tmp *( (float)-ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 2:
-		mag_tmp.x += mag_norm_tmp *( (float)-ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)-ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 3:
-		mag_tmp.x += mag_norm_tmp *( (float)-ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)-ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)-ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 4:
-		mag_tmp.x += mag_norm_tmp *( (float)-ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)-ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 5:
-		mag_tmp.x += mag_norm_tmp *( (float)ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)-ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)-ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 6:
-		mag_tmp.x += mag_norm_tmp *( (float)ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)-ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
-		case 7:
-		mag_tmp.x += mag_norm_tmp *( (float)ak8975.Mag_Val.x /( mag_norm_xyz ) - mag_tmp.x);
-		mag_tmp.y += mag_norm_tmp *( (float)-ak8975.Mag_Val.y /( mag_norm_xyz ) - mag_tmp.y);	
-		mag_tmp.z += mag_norm_tmp *( (float)ak8975.Mag_Val.z /( mag_norm_xyz ) - mag_tmp.z);	
-		break;
 	}
 
-	}
-
-
-	simple_3d_trans(&reference_v,&mag_tmp,&mag_sim_3d);
+	/*
+	void simple_3d_trans(_xyz_f_t *ref, _xyz_f_t *in, _xyz_f_t *out)
+	
+	???????????,????????????,??????,?????????????
+	???????????????,?????????,??????????
+	??:??????????????????,?????????,?????,????????????
+	*/
+	simple_3d_trans(&reference_v,&mag_tmp,&mag_sim_3d); 
 	
 	mag_norm = my_sqrt(mag_sim_3d.x * mag_sim_3d.x + mag_sim_3d.y *mag_sim_3d.y);
-	
+	if(mag_norm==0)
+		mag_norm=0.0001;
 	if( mag_sim_3d.x != 0 && mag_sim_3d.y != 0 && mag_sim_3d.z != 0 && mag_norm != 0)
 	{
 		yaw_mag = fast_atan2( ( mag_sim_3d.y/mag_norm ) , ( mag_sim_3d.x/mag_norm) ) *57.3f;
 		
 	}
+//---------acc norm---------
+	float norm;
+	norm = sqrt(ax*(ax) + ay*(ay) + az*az)/4096.*9.8;
+	calculateAccConfidence(norm);
+	
+	Kp_use =	Kp* accConfidence ;
 	//=============================================================================
-	// º∆À„µ»–ß÷ÿ¡¶œÚ¡ø// Æ∑÷÷ÿ“™
-	reference_vr[0]=reference_v.x = 2*(ref_q[1]*ref_q[3] - ref_q[0]*ref_q[2]);
-	reference_vr[1]=reference_v.y = 2*(ref_q[0]*ref_q[1] + ref_q[2]*ref_q[3]);
-	reference_vr[2]=reference_v.z = 1 - 2*(ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2]);//ref_q[0]*ref_q[0] - ref_q[1]*ref_q[1] - ref_q[2]*ref_q[2] + ref_q[3]*ref_q[3]
-	//reference_v.x = 2*(ref_q[1]*ref_q[3] - ref_q[0]*ref_q[2]);
-	//reference_v.y = 2*(ref_q[0]*ref_q[1] + ref_q[2]*ref_q[3]);
-	//reference_v.z = 1 - 2*(ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2]);//ref_q[0]*ref_q[0] - ref_q[1]*ref_q[1] - ref_q[2]*ref_q[2] + ref_q[3]*ref_q[3];
+	// ????????
+	reference_v.x = 2*(ref_q[1]*ref_q[3] - ref_q[0]*ref_q[2]);
+	reference_v.y = 2*(ref_q[0]*ref_q[1] + ref_q[2]*ref_q[3]);
+	reference_v.z = 1 - 2*(ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2]);//ref_q[0]*ref_q[0] - ref_q[1]*ref_q[1] - ref_q[2]*ref_q[2] + ref_q[3]*ref_q[3];
 
 	
-	//’‚ «∞—Àƒ‘™ ˝ªªÀ„≥…°∂∑ΩœÚ”‡œ“æÿ’Û°∑÷–µƒµ⁄»˝¡–µƒ»˝∏ˆ‘™Àÿ°£
-	//∏˘æ›”‡œ“æÿ’Û∫Õ≈∑¿≠Ω«µƒ∂®“Â£¨µÿ¿Ì◊¯±Íœµµƒ÷ÿ¡¶œÚ¡ø£¨◊™µΩª˙ÃÂ◊¯±Íœµ£¨’˝∫√ «’‚»˝∏ˆ‘™Àÿ°£
-	//À˘“‘’‚¿Ôµƒvx\y\z£¨∆‰ µæÕ «µ±«∞µƒ≈∑¿≠Ω«£®º¥Àƒ‘™ ˝£©µƒª˙ÃÂ◊¯±Í≤Œ’’œµ…œ£¨ªªÀ„≥ˆ¿¥µƒ÷ÿ¡¶µ•ŒªœÚ¡ø°£       
+	//?????????´??????ª???????????
+	//?????????????,??????????,???????,?????????
+	//?????vx\y\z,??????????(????)?????????,????????????       
 	//=============================================================================
 
+//	if(acc_ng_cali)
+//	{
+//		if(acc_ng_cali==2)
+//		{
+//			acc_ng_offset.x = 0;
+//			acc_ng_offset.y = 0;
+//			acc_ng_offset.z = 0;
+//		}
+//			
+//		acc_ng_offset.x += 10 *TO_M_S2 *(ax - 4096*reference_v.x) *0.0125f ;
+//		acc_ng_offset.y += 10 *TO_M_S2 *(ay - 4096*reference_v.y) *0.0125f ;
+//		acc_ng_offset.z += 10 *TO_M_S2 *(az - 4096*reference_v.z) *0.0125f ;	
+//		
+//		acc_ng_cali ++;
+//		if(acc_ng_cali>=82) //start on 2
+//		{
+//			acc_ng_cali = 0;
+//		}
+//	}
+//	
+//	acc_ng.x = 10 *TO_M_S2 *(ax - 4096*reference_v.x) - acc_ng_offset.x;
+//	acc_ng.y = 10 *TO_M_S2 *(ay - 4096*reference_v.y) - acc_ng_offset.y;
+//	acc_ng.z = 10 *TO_M_S2 *(az - 4096*reference_v.z) - acc_ng_offset.z;
+//	
+//	acc_3d_hg.z = acc_ng.x *reference_v.x + acc_ng.y *reference_v.y + acc_ng.z *reference_v.z;
+	
 
-	// º∆À„º”ÀŸ∂»œÚ¡øµƒƒ£
+	// ?????????
 	norm_acc = my_sqrt(ax*ax + ay*ay + az*az);   
-	norm_acc_lpf +=  NORM_ACC_LPF_HZ *(6.28f *half_T) *(norm_acc - norm_acc_lpf);  //10hz *3.14 * 2*0.001
-
-
+  if(norm_acc==0)
+		norm_acc=1;
+  
 	if(ABS(ax)<4400 && ABS(ay)<4400 && ABS(az)<4400 )
 	{	
-		//∞—º”º∆µƒ»˝Œ¨œÚ¡ø◊™≥…µ•ŒªœÚ¡ø°£
+		//???????????????
 		ax = ax / norm_acc;//4096.0f;
 		ay = ay / norm_acc;//4096.0f;
 		az = az / norm_acc;//4096.0f; 
 		
 		if( 3800 < norm_acc && norm_acc < 4400 )
 		{
-			/* ≤Ê≥Àµ√µΩŒÛ≤Ó */
+			/* ?????? */
 			ref.err_tmp.x = ay*reference_v.z - az*reference_v.y;
 			ref.err_tmp.y = az*reference_v.x - ax*reference_v.z;
 	    //ref.err_tmp.z = ax*reference_v.y - ay*reference_v.x;
 			
-			/* ŒÛ≤ÓµÕÕ® */
+			/* ???? */
 			ref_err_lpf_hz = REF_ERR_LPF_HZ *(6.28f *half_T);
 			ref.err_lpf.x += ref_err_lpf_hz *( ref.err_tmp.x  - ref.err_lpf.x );
 			ref.err_lpf.y += ref_err_lpf_hz *( ref.err_tmp.y  - ref.err_lpf.y );
@@ -248,12 +275,12 @@ void IMUupdate(float half_T,float gx, float gy, float gz, float ax, float ay, fl
 		ref.err.y = 0  ;
 //		ref.err.z = 0 ;
 	}
-	/* ŒÛ≤Óª˝∑÷ */
+	/* ???? */
 	ref.err_Int.x += ref.err.x *Ki *2 *half_T ;
 	ref.err_Int.y += ref.err.y *Ki *2 *half_T ;
 	ref.err_Int.z += ref.err.z *Ki *2 *half_T ;
 	
-	/* ª˝∑÷œﬁ∑˘ */
+	/* ???? */
 	ref.err_Int.x = LIMIT(ref.err_Int.x, - IMU_INTEGRAL_LIM ,IMU_INTEGRAL_LIM );
 	ref.err_Int.y = LIMIT(ref.err_Int.y, - IMU_INTEGRAL_LIM ,IMU_INTEGRAL_LIM );
 	ref.err_Int.z = LIMIT(ref.err_Int.z, - IMU_INTEGRAL_LIM ,IMU_INTEGRAL_LIM );
@@ -262,28 +289,31 @@ void IMUupdate(float half_T,float gx, float gy, float gz, float ax, float ay, fl
 	{
 		if( fly_ready  )
 		{
-	//	yaw_correct = Kp *0.2f *To_180_degrees(yaw_mag - YAW_R);
-			yaw_correct = Kp *0.2f *LIMIT( my_deathzoom( To_180_degrees(yaw_mag - *yaw), 10),-20,20 );
-			//“—æ≠Ω‚À¯£¨÷ª–Ë“™µÕÀŸæ¿’˝°£
+			yaw_correct = Kp_Yaw *0.2f *To_180_degrees(yaw_mag - Yaw);
+			//????,????????
 		}
 		else
 		{
-			yaw_correct = Kp *1.5f *To_180_degrees(yaw_mag - *yaw);
-			//√ª”–Ω‚À¯£¨ ”◊˜ø™ª˙ ±øÃ£¨øÏÀŸæ¿’˝
+			yaw_correct = Kp_Yaw *1.5f *To_180_degrees(yaw_mag - Yaw);
+			//????,??????,????
 		}
 // 		if( yaw_correct>360 || yaw_correct < -360  )
 // 		{
 // 			yaw_correct = 0;
-// 			//œﬁ÷∆æ¿’˝∑∂Œß+-360£¨≈‰∫œ+-180∂»»°÷µ∫Ø ˝
+// 			//??????+-360,??+-180?????
 // 		}
+	}
+	else
+	{
+		yaw_correct = 0; //????,????,???????????
 	}
 
 	
-	ref.g.x = (gx - reference_v.x *yaw_correct) *ANGLE_TO_RADIAN + ( Kp*(ref.err.x + ref.err_Int.x) ) ;     //IN RADIAN
-	ref.g.y = (gy - reference_v.y *yaw_correct) *ANGLE_TO_RADIAN + ( Kp*(ref.err.y + ref.err_Int.y) ) ;		  //IN RADIAN
+	ref.g.x = (gx - reference_v.x *yaw_correct) *ANGLE_TO_RADIAN + ( Kp_use*(ref.err.x + ref.err_Int.x) ) ;     //IN RADIAN
+	ref.g.y = (gy - reference_v.y *yaw_correct) *ANGLE_TO_RADIAN + ( Kp_use*(ref.err.y + ref.err_Int.y) ) ;		  //IN RADIAN
 	ref.g.z = (gz - reference_v.z *yaw_correct) *ANGLE_TO_RADIAN;
 	
-	/* ”√≤Êª˝ŒÛ≤Ó¿¥◊ˆPI–ﬁ’˝Õ”¬›¡„∆´ */
+	/* ???????PI?????? */
 
 	// integrate quaternion rate and normalise
 	ref_q[0] = ref_q[0] +(-ref_q[1]*ref.g.x - ref_q[2]*ref.g.y - ref_q[3]*ref.g.z)*half_T;
@@ -291,18 +321,22 @@ void IMUupdate(float half_T,float gx, float gy, float gz, float ax, float ay, fl
 	ref_q[2] = ref_q[2] + (ref_q[0]*ref.g.y - ref_q[1]*ref.g.z + ref_q[3]*ref.g.x)*half_T;
 	ref_q[3] = ref_q[3] + (ref_q[0]*ref.g.z + ref_q[1]*ref.g.y - ref_q[2]*ref.g.x)*half_T;  
 
-	/* Àƒ‘™ ˝πÊ“ªªØ normalise quaternion */
+	/* ?????? normalise quaternion */
 	norm_q = my_sqrt(ref_q[0]*ref_q[0] + ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2] + ref_q[3]*ref_q[3]);
-	q_nav_r[0]=ref_q[0] = ref_q[0] / norm_q;
-	q_nav_r[1]=ref_q[1] = ref_q[1] / norm_q;
-	q_nav_r[2]=ref_q[2] = ref_q[2] / norm_q;
-	q_nav_r[3]=ref_q[3] = ref_q[3] / norm_q;
+	if(norm_q==0)
+		norm_q=1;
+	ref_q[0] = ref_q[0] / norm_q;
+	ref_q[1] = ref_q[1] / norm_q;
+	ref_q[2] = ref_q[2] / norm_q;
+	ref_q[3] = ref_q[3] / norm_q;
 	
-
+  reference_vr[0]=reference_v.x = 2*(ref_q[1]*ref_q[3] - ref_q[0]*ref_q[2]);
+	reference_vr[1]=reference_v.y = 2*(ref_q[0]*ref_q[1] + ref_q[2]*ref_q[3]);
+	reference_vr[2]=reference_v.z = 1 - 2*(ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2]);
 	*rol = fast_atan2(2*(ref_q[0]*ref_q[1] + ref_q[2]*ref_q[3]),1 - 2*(ref_q[1]*ref_q[1] + ref_q[2]*ref_q[2])) *57.3f;
 	*pit = asin(2*(ref_q[1]*ref_q[3] - ref_q[0]*ref_q[2])) *57.3f;
-// 				//Yaw   = ( - fast_atan2(2*(ref_q[1]*ref_q[2] + ref_q[0]*ref_q[3]),ref_q[0]*ref_q[0] + ref_q[1]*ref_q[1] - ref_q[2]*ref_q[2] - ref_q[3]*ref_q[3]) )* 57.3;
+
 	*yaw = fast_atan2(2*(-ref_q[1]*ref_q[2] - ref_q[0]*ref_q[3]), 2*(ref_q[0]*ref_q[0] + ref_q[1]*ref_q[1]) - 1) *57.3f  ;// 
 	//*yaw = yaw_mag;
-}
 
+}

@@ -25,6 +25,6 @@ typedef struct
 
 extern AUX_S aux;
 u8 PWM_AUX_Out_Init(uint16_t hz);//50Hz
-void SetPwm_AUX(float pit,float rol);
+void SetPwm_AUX(float pit,float rol,float yaw);
 #endif
 

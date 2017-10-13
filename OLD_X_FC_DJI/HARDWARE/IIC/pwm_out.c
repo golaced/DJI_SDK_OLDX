@@ -158,14 +158,14 @@ u8 PWM_AUX_Out_Init(uint16_t hz)//50Hz
 		TIM_Cmd(TIM8, ENABLE);	
 //---- TIM4
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9; 
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8; 
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 		GPIO_InitStructure.GPIO_PuPd =GPIO_PuPd_DOWN;//GPIO_PuPd_UP ;
 		GPIO_Init(GPIOB, &GPIO_InitStructure); 
 
-		GPIO_PinAFConfig(GPIOB, GPIO_PinSource9, GPIO_AF_TIM4);
+		GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_TIM4);
 		//------------------
 		/* Compute the prescaler value */
 		PrescalerValue = (uint16_t) ( ( SystemCoreClock /2 ) / hz_set ) - 1;
@@ -181,21 +181,22 @@ u8 PWM_AUX_Out_Init(uint16_t hz)//50Hz
 		/* PWM1 Mode configuration: Channel1 */
 		TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 		TIM_OCInitStructure.TIM_Pulse = INIT_DUTY;
-		TIM_OC4Init(TIM4, &TIM_OCInitStructure);
+		TIM_OC3Init(TIM4, &TIM_OCInitStructure);
 
 		TIM_CtrlPWMOutputs(TIM4, ENABLE);
 		TIM_ARRPreloadConfig(TIM4, ENABLE);
 		TIM_Cmd(TIM4, ENABLE);	
 		
 		
-    SetPwm_AUX(0,0);
+    SetPwm_AUX(0,0,0);
 		
 	
 }
 
 AUX_S aux;
-float kp_aux[2]={8.8,20};
-void SetPwm_AUX(float pit,float rol)
+float kp_aux[2]={8,20};
+float yaw_test=0;
+void SetPwm_AUX_DJ(float pit,float rol,float yaw)
 { static u8 init;
 	u8 i;
 	if(!init&&Pit_yun!=0&&Rol_yun!=0)
@@ -208,18 +209,18 @@ void SetPwm_AUX(float pit,float rol)
   aux.max[0]=2500-150;
 	aux.max[1]=2500-150;
 		
-	aux.init[2]=1500;
-  aux.min[2]=500+150;
-	aux.max[2]=2500-150;		
+	aux.init[2]=1200;
+  aux.min[2]=850;
+	aux.max[2]=1500;		
 	aux.flag[0]=-1;	
   aux.flag[1]=-1;		
-	aux.flag[2]=-1;		
-	aux.pwm_per_dig=4.8;
+	aux.flag[2]=1;		
+	aux.pwm_per_dig=10;
 	}	
 	
 	aux.pwm_tem[0]=aux.init[0]+kp_aux[0]*(pit-Pit_yun);//aux.pwm_per_dig*pit*aux.flag[0];
 	aux.pwm_tem[1]=aux.init[1]+kp_aux[1]*(rol-Rol_yun);//aux.pwm_per_dig*rol*aux.flag[1];
-	aux.pwm_tem[2]=aux.init[2]+aux.pwm_per_dig*rol*aux.flag[2];
+	aux.pwm_tem[2]=aux.init[2]+aux.pwm_per_dig*yaw*aux.flag[2];
 	for(i=0;i<3;i++)
 	{
 			aux.pwm_tem[i] = LIMIT(aux.pwm_tem[i],aux.min[i],aux.max[i]);
@@ -232,7 +233,47 @@ void SetPwm_AUX(float pit,float rol)
 	}
 	TIM8->CCR1 = (aux.pwm_tem[0] ) ;				//pit	
 	TIM8->CCR2 = (aux.pwm_tem[1] ) ;				//rol
-	TIM4->CCR4 = (aux.pwm_tem[2] )  ;          //yaw
+	TIM4->CCR3 = (aux.pwm_tem[2] )/2  ;          //yaw
+}	
+
+void SetPwm_AUX(float pit,float rol,float yaw)
+{ static u8 init;
+	u8 i;
+	if(!init)
+	{
+	init=1;
+	aux.init[0]=1500;
+	aux.init[1]=1500;
+	aux.min[0]=500+150;
+	aux.min[1]=500+150;
+  aux.max[0]=2500-150;
+	aux.max[1]=2500-150;
+		
+	aux.init[2]=1200;
+  aux.min[2]=850;
+	aux.max[2]=1500;		
+	aux.flag[0]=-1;	
+  aux.flag[1]=-1;		
+	aux.flag[2]=1;		
+	aux.pwm_per_dig=10;
+	}	
+	
+	aux.pwm_tem[0]=pit;//aux.init[0]+kp_aux[0]*(pit-Pit_yun);//aux.pwm_per_dig*pit*aux.flag[0];
+	aux.pwm_tem[1]=rol;//aux.init[1]+kp_aux[1]*(rol-Rol_yun);//aux.pwm_per_dig*rol*aux.flag[1];
+	aux.pwm_tem[2]=aux.init[2]+aux.pwm_per_dig*yaw*aux.flag[2];
+	for(i=0;i<3;i++)
+	{
+			aux.pwm_tem[i] = LIMIT(aux.pwm_tem[i],aux.min[i],aux.max[i]);
+	}
+	if(!init)
+	{
+	aux.pwm_tem[0]=aux.init[0];
+	aux.pwm_tem[1]=aux.init[1];
+	aux.pwm_tem[2]=aux.init[2];
+	}
+	TIM8->CCR1 = (aux.pwm_tem[0] ) ;				//pit	
+	TIM8->CCR2 = (aux.pwm_tem[1] ) ;				//rol
+	TIM4->CCR3 = (aux.pwm_tem[2] )/2  ;          //yaw
 }	
 
 

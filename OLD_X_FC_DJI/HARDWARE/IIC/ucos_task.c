@@ -79,6 +79,7 @@ float k_m100_track[3]={2.26,0.88,0.66};
 float k_m100_shoot[3]={2.26,0.88,0.66};
 float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
+float k_dj_yun[3]={1,1,1};
 void inner_task(void *pdata)
 {NVIC_InitTypeDef NVIC_InitStructure;
  u8 i;
@@ -390,7 +391,10 @@ void inner_task(void *pdata)
 	//Rc_Pwm_Out_mine[RC_YAW]=PWM_DJ[2];//(1-flt_track[2])*Rc_Pwm_Out_mine[RC_YAW]+(flt_track[2])*PWM_DJ[2];
 	
 	SetPwm(Rc_Pwm_Out_mine,Rc_Pwm_off,pwmin.min,pwmin.max);
-  SetPwm_AUX(0,0);
+	//Rc_Pwm_Out_mine[4] pit
+	//Rc_Pwm_Out_mine[5] yaw
+  //SetPwm_AUX_DJ((Rc_Pwm_Out_mine[4]-1500)*k_dj_yun[0],0,(Rc_Pwm_Out_mine[5]-1500)*k_dj_yun[1]);
+	SetPwm_AUX(Rc_Pwm_Out_mine[4],Rc_Pwm_Out_mine[5],0);
 	dj_mode_reg=mode.dj_by_hand;
 	
 	Rc_Pwm_Out_mine_USE[0]=Rc_Pwm_Out_mine[0];
@@ -415,7 +419,10 @@ void outer_task(void *pdata)
 	/*IMU更新姿态。输入：半个执行周期，三轴陀螺仪数据（转换到度每秒），三轴加速度计数据（4096--1G）；输出：ROLPITYAW姿态角*/
  	IMUupdate(0.5f *outer_loop_time,mpu6050.Gyro_deg.x, mpu6050.Gyro_deg.y, mpu6050.Gyro_deg.z, mpu6050.Acc.x, mpu6050.Acc.y, mpu6050.Acc.z,&Roll_R,&Pitch_R,&Yaw_R);		
  	CTRL_2( outer_loop_time ); 														// 外环角度控制。输入：执行周期，期望角度（摇杆量），姿态角度；输出：期望角速度。<函数未封装>
-  
+  Pitch=Pitch_R;
+	Roll=Roll_R;	
+	Yaw=Yaw_R;	
+		
   if(cnt1++>9){cnt1=0;GPS_calc_poshold(); 
 	}
 	#if USE_M100
@@ -435,7 +442,8 @@ void nrf_task(void *pdata)
 {							 
 	static u8 cnt,cnt2;
  	while(1)
-	{
+	{  
+		PWIN_CAL();
 		//------------0 1   |   2 3  KEY_SEL
 		
 		mode.dj_by_hand=0;//!KEY_SEL[0];//手动控制云台
@@ -472,6 +480,7 @@ void nrf_task(void *pdata)
 		//force_check_pass=0;
 		mode.hold_use_flow=0;		
 		mode.en_rth_mine=0;//KEY[7];
+		//mode.auto_fly_up=1;
 		#endif
 		
 		//EN_SHOOT(en_shoot||KEY[2]);
@@ -625,7 +634,8 @@ void m100_task(void *pdata)
 	{m100_land_control_long(10);}
 	m100_Rc_gr=mode.auto_fly_up;
 	
-  if(m100.Rc_gear<=-9000&&ALT_POS_SONAR2>0.32666)en_vrc=1;
+  if(m100.Rc_gear<=-9000)//&&ALT_POS_SONAR2>0.32666)
+		en_vrc=1;
   if(en_vrc&&m100.Rc_gear>-5000)
 	en_vrc=0;
 	if(en_vrc)
@@ -635,6 +645,7 @@ void m100_task(void *pdata)
   m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],m100_control_mode); 
   else	
 	m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);
+  //m100_contrl(1600,Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);
 	delay_ms(20); }
 	
 	if(en_vrc==0&&en_vrcr==1)
@@ -651,7 +662,7 @@ void m100_task(void *pdata)
 
 //=======================串口 任务函数===========================
 OS_STK  UART_TASK_STK[UART_STK_SIZE];
-u8 UART_UP_LOAD_SEL=4;//<------------------------------UART UPLOAD DATA SEL
+u8 UART_UP_LOAD_SEL=0;//<------------------------------UART UPLOAD DATA SEL
 u8 UART_UP_LOAD_SEL_FORCE;
 u8 state_v_test=0;
 u8 num_need_to_check;

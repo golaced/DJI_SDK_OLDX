@@ -16,14 +16,14 @@ void * operator new (size_t size)
   if(NULL == size)
   {
 #ifdef DEBUG
-    printf("Error! Size is zero");
+    //printf("Error! Size is zero");
 #endif//DEBUG
     return NULL;
   }
   void *p = malloc(size);
 #ifdef DEBUG
   if(p == 0)
-  printf("Lack Memory!");
+  ;//printf("Lack Memory!");
 #endif//DEBUG
   return p;
 }

@@ -30,6 +30,7 @@
 
 #include "DJI_HardDriver.h"
 #include "DJI_App.h"
+extern int activate_s;
 namespace DJI
 {
 namespace onboardSDK

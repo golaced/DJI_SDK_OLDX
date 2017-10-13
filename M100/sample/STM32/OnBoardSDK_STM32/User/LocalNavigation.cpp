@@ -104,11 +104,11 @@ void myRecvCallback(DJI::onboardSDK::CoreAPI * myApi, Header *myHeader, DJI::Use
         s->homePositionLLA = myApi->getBroadcastData().pos;
         if(s->homePositionSetFlag == 0)
         {
-          printf("Home Location Set!\r\n");
+          //printf("Home Location Set!\r\n");
         }
         else
         {
-          printf("Home Location Updated!\r\n");
+         // printf("Home Location Updated!\r\n");
         }
         s->homePositionSetFlag = 1;
       }
@@ -156,7 +156,7 @@ uint32_t startLocalNavExample()
   {
     droneState.roseCurveTheta =  0.0f;
     droneState.localNavExampleRunningFlag = 0;
-    printf("Please take off first!\r\n");
+   // printf("Please take off first!\r\n");
     return LOCAL_NAV_FAIL;
   }
   else

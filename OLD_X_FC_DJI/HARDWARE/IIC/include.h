@@ -294,6 +294,7 @@ extern float k_m100_laser_avoid,k_m100_yaw;//=0.5;
 extern u8 dji_rst_protect,dji_rst;
 extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss;
 extern u16 dji_miss_cnt;
+extern u16 Rc_Pwm_Out_mine_USE[4]; 
 extern u16 cnt_m100_data_refresh,S_head;
 extern u8 m100_data_refresh;
 extern u8 state_set_point;

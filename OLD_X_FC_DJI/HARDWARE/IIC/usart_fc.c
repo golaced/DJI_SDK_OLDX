@@ -392,36 +392,35 @@ USART_SendData(UART5, data_num); ;//USART1, ch);
 
 }
 
-
-void Usart1_Init(u32 br_num)//-------UPload_board1
+void Usart1_Init(u32 br_num)//-------UPload_board1  ???????
 {
 	USART_InitTypeDef USART_InitStructure;
 	USART_ClockInitTypeDef USART_ClockInitStruct;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE); //开启USART2时钟
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE); //??USART2??
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);	
 	
-	/*//串口中断优先级
-	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
+//	//???????
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority =2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	*/
+	NVIC_Init(&NVIC_InitStructure);	
 
 	
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
 	
-	//配置PD5作为USART2　Tx
+	//??PD5??USART2 Tx
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9; 
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
   GPIO_Init(GPIOA, &GPIO_InitStructure); 
-	//配置PD6作为USART2　Rx
+	//??PD6??USART2 Rx
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 ; 
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -429,26 +428,27 @@ void Usart1_Init(u32 br_num)//-------UPload_board1
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
   GPIO_Init(GPIOA, &GPIO_InitStructure); 
 
-   //USART1 初始化设置
-	USART_InitStructure.USART_BaudRate = br_num;//波特率设置
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8位数据格式
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
-	USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//收发模式
-  USART_Init(USART1, &USART_InitStructure); //初始化串口1
+   //USART1 ?????
+	USART_InitStructure.USART_BaudRate = br_num;//?????
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;//???8?????
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;//?????
+	USART_InitStructure.USART_Parity = USART_Parity_No;//??????
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//????????
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//????
+  USART_Init(USART1, &USART_InitStructure); //?????1
 	
-  USART_Cmd(USART1, ENABLE);  //使能串口1 
+  USART_Cmd(USART1, ENABLE);  //????1 
 	
 	USART_ClearFlag(USART1, USART_FLAG_TC);
-	
 
-	//使能USART2接收中断
+	//??USART2????
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-	//使能USART2
+	//??USART2
 	USART_Cmd(USART1, ENABLE); 
+	//Send_Data_UP_LINK(BLE_UP1,20);
 
 }
+
 
 void Usart4_Init(u32 br_num)//-------SD_board
 {
@@ -562,7 +562,10 @@ u8 m100_data_refresh;
 		m100.Rc_mode=(float)((int16_t)(*(data_buf+36)<<8)|*(data_buf+37));
 		m100.Rc_gear=(float)((int16_t)(*(data_buf+38)<<8)|*(data_buf+39));
 		m100.STATUS=*(data_buf+40);		
-		m100.GPS_STATUS=*(data_buf+41);
+		m100.GPS_STATUS=*(data_buf+41)&&m100.STATUS;
+		m100.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
+		m100.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
+		m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
 	}			
 }
 
@@ -663,7 +666,7 @@ void UART4_IRQHandler(void)
 		{
 			RxState4 = 0;
 			RxBuffer4[4+_data_cnt4]=com_data;
-			Data_Receive_Anl4(RxBuffer4,RxBufferCnt4+5);
+			Data_Receive_Anl4(RxBuffer4,_data_cnt4+5);
 		}
 		else
 			RxState4 = 0;
@@ -747,7 +750,7 @@ void Usart3_Init(u32 br_num)//-------GPS_board
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN ;
   GPIO_Init(GPIOB, &GPIO_InitStructure); 
 
 	
@@ -988,7 +991,41 @@ void CopeSerialData(unsigned char ucData)
 }
 
 
+ void Data_Receive_Anl41(u8 *data_buf,u8 num)
+{
+	vs16 rc_value_temp,rc_value_temp1;
+	u8 sum = 0;
+	u8 i;
+	for( i=0;i<(num-1);i++)
+		sum += *(data_buf+i);
+	u8 sum_in=*(data_buf+num-1);
+	if(!(sum==*(data_buf+num-1)))		
+		return;		//判断sum
+	if(!(*(data_buf)==0xAA && *(data_buf+1)==0xAF))		return;		//判断帧头
+	if(*(data_buf+2)==0x31)//SLAM_frame
+  {
+//	circle.connect=1;
+//	circle.lose_cnt=0;
+//	circle.check=(*(data_buf+4));///10.;Rol_yun,Pit_yun,Yaw_yun;
+	ultra_distance=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
+	ALT_POS_SONAR_HEAD=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/1000.;
+	//ultra_distance=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
+	Rol_yun=(float)((int16_t)(*(data_buf+10)<<8)|*(data_buf+11))/100.;
+	Pit_yun=(float)((int16_t)(*(data_buf+12)<<8)|*(data_buf+13))/100.;
+	Yaw_yun=(float)((int16_t)(*(data_buf+14)<<8)|*(data_buf+15))/100.;
+	Rol_yun_rate=(float)((int16_t)(*(data_buf+16)<<8)|*(data_buf+17))/100.;
+	Pit_yun_rate=(float)((int16_t)(*(data_buf+18)<<8)|*(data_buf+19))/100.;
+	Yaw_yun_rate=(float)((int16_t)(*(data_buf+20)<<8)|*(data_buf+21))/100.;
+	}	
+}
 
+u8 Rx_Buf41[256];	//串口接收缓存
+u8 RxBuffer41[50];
+u8 RxState41 = 0;
+u8 RxBufferNum41 = 0;
+u8 RxBufferCnt41 = 0;
+u8 RxLen41= 0;
+static u8 _data_len41 = 0,_data_cnt41 = 0;
 void USART3_IRQHandler(void)
 {  OSIntEnter();  
 	u8 com_data;
@@ -1005,8 +1042,44 @@ void USART3_IRQHandler(void)
 		USART_ClearITPendingBit(USART3,USART_IT_RXNE);//清除中断标志
 
 		com_data = USART3->DR;
-		CopeSerialData(com_data);
-
+		//CopeSerialData(com_data);
+    if(RxState41==0&&com_data==0xAA)
+		{
+			RxState41=1;
+			RxBuffer41[0]=com_data;
+		}
+		else if(RxState41==1&&com_data==0xAF)
+		{
+			RxState41=2;
+			RxBuffer41[1]=com_data;
+		}
+		else if(RxState41==2&&com_data>0&&com_data<0XF1)
+		{
+			RxState41=3;
+			RxBuffer41[2]=com_data;
+		}
+		else if(RxState41==3&&com_data<50)
+		{
+			RxState41 = 4;
+			RxBuffer41[3]=com_data;
+			_data_len41 = com_data;
+			_data_cnt41 = 0;
+		}
+		else if(RxState41==4&&_data_len41>0)
+		{
+			_data_len41--;
+			RxBuffer41[4+_data_cnt41++]=com_data;
+			if(_data_len41==0)
+				RxState41 = 5;
+		}
+		else if(RxState41==5)
+		{
+			RxState41 = 0;
+			RxBuffer41[4+_data_cnt41]=com_data;
+			Data_Receive_Anl41(RxBuffer41,_data_cnt41+5);
+		}
+		else
+			RxState41 = 0;
 	}
 	//发送（进入移位）中断
 	if( USART_GetITStatus(USART3,USART_IT_TXE ) )
@@ -1698,7 +1771,7 @@ switch(sel){
 	SendBuff4[nrf_uart_cnt++]=mode.cal_rc;
 	SendBuff4[nrf_uart_cnt++]=mode.mems_state;
 	
-	if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=3)
+	if((m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=3)||1)
 	SendBuff4[nrf_uart_cnt++]=9;
 	else if(m100_data_refresh&&!dji_rc_miss)
 	SendBuff4[nrf_uart_cnt++]=6;

@@ -17,6 +17,7 @@ void USARTxNVIC_Config(void);
 void UsartConfig(void);
 void NVIC_Config(void);
 void Rx_buff_Handler() ;
+void Laser_Init(u32 br_num);//-------SONAR
 void Ultra_Duty();
 extern int Laser_distance,Laser_ST,ultra_distance;
 #endif  //_USART_H

@@ -301,7 +301,7 @@ extern u8 SendBuff1[SEND_BUF_SIZE1];	//发送数据缓冲区
 extern u8 SendBuff1_cnt;
 void data_per_uart1(int16_t ax,int16_t ay, int16_t az, int16_t gx,int16_t  gy, int16_t gz,int16_t hx, int16_t hy, int16_t hz,
 	int16_t yaw,int16_t pitch,int16_t roll,int16_t alt,int16_t tempr,int16_t press,int16_t IMUpersec);
-
+void Usart1_Send_DMA(u8 *dataToSend , u8 length);
 
 #define SEND_BUF_SIZE2 40	//发送数据长度,最好等于sizeof(TEXT_TO_SEND)+2的整数倍.
 extern u8 SendBuff2[SEND_BUF_SIZE2];	//发送数据缓冲区
