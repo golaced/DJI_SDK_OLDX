@@ -20,30 +20,20 @@ switch (state)
 {
 	case 0:
 		if(on)
-		{cnt=0;state=1;GPIO_SetBits(GPIOA,GPIO_Pin_7);}
+		{cnt=0;state=1;GPIO_SetBits(GPIOB,GPIO_Pin_8);}
 	break;
 	 case 1:
      if(cnt++>shoot_cnt[0])
-		 {cnt=0;state=2;GPIO_ResetBits(GPIOA,GPIO_Pin_7);}	
+		 {cnt=0;state=2;GPIO_ResetBits(GPIOB,GPIO_Pin_8);}	
 		break;		 
 	 
 	case 2:
      if(cnt++>shoot_cnt[1])
 		 {cnt=0;state=0;if(en_shoot)en_shoot=0;cnt_shoot++;}
 		
-	break;
- 
-		 
+	break;		 
 
 }
-//if(state_v!=SG_LOW_CHECK||state_v!=SD_SHOOT)
-//{
-//cnt=state=0;
-//GPIO_ResetBits(GPIOC,GPIO_Pin_8);
-//}
-
-
-
 }
 
 
@@ -52,13 +42,13 @@ void SHOOT_Init()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE);
 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	EN_SHOOT(0);
 

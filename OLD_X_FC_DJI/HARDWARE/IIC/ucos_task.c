@@ -241,6 +241,11 @@ void inner_task(void *pdata)
 	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
    PWM_DJ[1]=PWM_DJ1+YUN_PER_OFF*mode.en_yun_per_off;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
 	}
+	else if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
+	{
+	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
+   PWM_DJ[1]=PWM_DJ1;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
+	}
 	else if(track.check&&circle.connect&&(state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
 	float ero[2],ero2[2],ero3[2],ero4[2];
   static float ero_r[2],ero_r2[2],ero_r3[2];
@@ -483,7 +488,7 @@ void nrf_task(void *pdata)
 		//mode.auto_fly_up=1;
 		#endif
 		
-		//EN_SHOOT(en_shoot||KEY[2]);
+		EN_SHOOT(en_shoot||KEY[2]);
 			
 		//-----
 		#if  DEBUG_WITHOUT_SB
@@ -496,8 +501,6 @@ void nrf_task(void *pdata)
 		fly_ready=0;//KEY_SEL[3];//解锁
 		#endif
 		delay_ms(20);
-//		if(cnt++>1){cnt=0;
-//		RC_Send_Task();}
 	}
 }		
 
@@ -700,30 +703,6 @@ void uart_task(void *pdata)
 						#endif		
 						#endif
 							}		
-				
-//				//SD	
-//				if(cnt[1]++>1){cnt[1]=0;	
-//				  #if EN_DMA_UART2 					
-//					if(DMA_GetFlagStatus(DMA1_Stream6,DMA_FLAG_TCIF6)!=RESET)//等待DMA2_Steam7传输完成
-//								{ 
-//							DMA_ClearFlag(DMA1_Stream6,DMA_FLAG_TCIF6);//清除DMA2_Steam7传输完成标志
-//							switch(sd_sel){
-//								case 0:sd_sel=1;		
-//							data_per_uart4(SEND_IMU);
-//								break;
-//								case 1:sd_sel=0;
-//							data_per_uart4(SEND_ALT);
-//								break;
-//							}
-//					    USART_DMACmd(USART2,USART_DMAReq_Tx,ENABLE);  //使能串口1的DMA发送     
-//							MYDMA_Enable(DMA1_Stream6,SEND_BUF_SIZE4+2);     //开始一次DMA传输！	
-//								}	
-//					#else
-//							SD_LINK_TASK2(SEND_IMU);		// GOL_LINK_TASK();	
-//					#endif
-//							}					
-//							GOL_LINK_TASK();
-							
 							
 				if(UART_UP_LOAD_SEL_FORCE!=0)
           UART_UP_LOAD_SEL=UART_UP_LOAD_SEL_FORCE;				 
@@ -848,12 +827,13 @@ void tmr2_callback(OS_TMR *ptmr,void *p_arg)
 static u16 cnt_1,cnt_2;	
 static u8 cnt;
 	Mode_FC();
-	//LEDRGB_STATE();
+	LEDRGB_STATE();
 	if(circle.lose_cnt++>4/0.05)
 		circle.connect=0;
 	if(mouse.lose_cnt++>2/0.05)
 		mouse.connect=0;
-	
+	if(m100.mems_loss_cnt++>2/0.05)
+		m100.mems_board_connect=0;
 	if(ABS(m100.Pit)>90||ABS(m100.Rol)>90)
 	{cnt_1=0;dji_rst_protect=1;}
 	

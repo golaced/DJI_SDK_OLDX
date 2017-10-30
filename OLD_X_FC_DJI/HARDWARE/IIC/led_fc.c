@@ -71,37 +71,55 @@ GPIO_SetBits(GPIOC,GPIO_Pin_1);
 break;
 }
 }
-
+u8 LED[3]={0};
 void LEDRGB_COLOR(u8 color)
 {
 switch (color)
 {
 case RED:
+LED[0]=1;
+LED[1]=0;
+LED[2]=0;
 LEDRGB(RED,1);
 LEDRGB(BLUE,0);
 LEDRGB(GREEN,0);
 break;
 case BLUE:
+LED[0]=0;
+LED[1]=1;
+LED[2]=0;	
 LEDRGB(RED,0);
 LEDRGB(BLUE,1);
 LEDRGB(GREEN,0);
 break;
 case GREEN:
+LED[0]=0;
+LED[1]=0;
+LED[2]=1;	
 LEDRGB(RED,0);
 LEDRGB(BLUE,0);
 LEDRGB(GREEN,1);
 break;
 case WHITE:
+LED[0]=1;
+LED[1]=1;
+LED[2]=1;
 LEDRGB(RED,1);
 LEDRGB(BLUE,1);
 LEDRGB(GREEN,1);
 break;
 case BLACK:
+LED[0]=0;
+LED[1]=0;
+LED[2]=0;	
 LEDRGB(RED,0);
 LEDRGB(BLUE,0);
 LEDRGB(GREEN,0);
 break;
 case YELLOW:
+LED[0]=1;
+LED[1]=0;
+LED[2]=1;	
 LEDRGB(RED,1);
 LEDRGB(BLUE,0);
 LEDRGB(GREEN,1);
@@ -199,10 +217,12 @@ switch(idle_state)
 	break;
 	
 	case 3:
-	 if(circle.connect)
-				LEDRGB_COLOR(WHITE); 
-		 else
-				LEDRGB_COLOR(RED);
+	if(circle.connect&&m100.mems_board_connect)
+	LEDRGB_COLOR(WHITE); 
+	else if(m100.mems_board_connect) 
+	LEDRGB_COLOR(BLUE); 
+	else
+	LEDRGB_COLOR(RED);
 	if(cnt_idle++>0.1/0.05)
 	{idle_state=4;cnt_idle=0;}
 	break;
@@ -215,8 +235,8 @@ switch(idle_state)
 	case 5:
 	 if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=3)
 				LEDRGB_COLOR(WHITE); 
-		 else if(m100_data_refresh&&!dji_rc_miss)
-			  LEDRGB_COLOR(YELLOW);
+		 else if(m100.refresh&&!dji_rc_miss)
+			  LEDRGB_COLOR(BLUE);
 		 else
 				LEDRGB_COLOR(RED);
 	if(cnt_idle++>0.1/0.05)

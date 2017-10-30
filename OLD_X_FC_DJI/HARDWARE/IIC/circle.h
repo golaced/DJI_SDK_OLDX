@@ -17,7 +17,7 @@
 	float control_yaw;
  float forward;
  float forward_end_dj_pwm;
-	
+  int map[6][4];
 	u8 dj_fly_line;
 }CIRCLE;
 extern CIRCLE circle,track,mouse;
@@ -49,9 +49,14 @@ Flight status val	status name
  u8 m100_connect;
  float spd[3];
  float q[4];
+ u8 refresh;
+ u8 mems_board_connect;
+ u16 mems_loss_cnt;
 }M100;
 extern M100 m100;
-
+extern float target_map[20][3];
+void Clear_map(void);
+void map_builder(void);
 #endif
 
 

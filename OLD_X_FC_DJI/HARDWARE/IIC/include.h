@@ -242,8 +242,11 @@ void Flow_set_tar(float set);
 #define SU_TO_CHECK_POS 6
 #define SU_CHECK_TAR 7
 #define SU_TO_START_POS 8
-
-
+#define SU_MAP1 9
+#define SU_MAP2 10
+#define SU_MAP3 11
+#define SU_MAP_TO 32
+#define SU_MAP_SCAN 33
 //-----------------------------------
 #define SD_HOLD 13
 #define SD_HOLD_BACK 23
@@ -260,9 +263,10 @@ void Flow_set_tar(float set);
 #define SD_SAFE 22
 #define SD_TO_HOME 26
 
-//-------------------------------------------------------------------------------------
+//--------------------------------------ZHB----------------------------------------
 #define TEST_GPS 0
 #define USE_M100 1
+#define USE_MAP 0 //使用MAP信息
 //云台初始化位置
 #define  PWM_DJ0  1630//1680//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );  俯仰
 #define	 PWM_DJ1 1500//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );  左右

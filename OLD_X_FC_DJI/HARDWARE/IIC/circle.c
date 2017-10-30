@@ -123,6 +123,27 @@ void circle_control(float T)
 }
 
 
+//---------------------------MAP----------------
+float target_map[20][3];
+void Clear_map(void){
+	u8 i;
+	for(i=0;i<20;i++)
+	target_map[i][0]=target_map[i][1]=target_map[i][2]=0;
+}
+
+
+
+int pix_ero=10;
+void map_builder(void){
+	u8 i;
+	
+	for(i=0;i<6;i++){		
+	if(circle.map[i][0]==1&&ABS(circle.map[i][1]-MID_X)<pix_ero)	
+	target_map[i][0]=gps_data.latitude;
+	target_map[i][1]=gps_data.longitude;
+	target_map[i][2]=ALT_POS_SONAR2;
+  }
+}
 
 
 //----------------------------------GPS------------------------

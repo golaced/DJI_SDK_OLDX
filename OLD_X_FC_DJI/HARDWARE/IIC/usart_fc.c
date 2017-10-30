@@ -541,6 +541,7 @@ u8 m100_data_refresh;
 		{cnt_m100_data_refresh=0;
 		 m100_data_refresh=1;
 		}
+		m100.refresh=m100_data_refresh;
 		m100_hr=m100.H;
 		m100_attr[0]=m100.Pit;
 		m100_attr[1]=m100.Rol;
@@ -823,7 +824,6 @@ float rate_gps_board;
 	circle.control[0]=(int8_t)(*(data_buf+8));
 	circle.control[1]=(int8_t)(*(data_buf+9));
 	circle.r=(int8_t)(*(data_buf+10));
-	//track.check=(int8_t)(*(data_buf+11));
 	}			
 	else if(*(data_buf+2)==0x04)//Mouse
   {
@@ -850,6 +850,15 @@ float rate_gps_board;
 	
 		
   }
+		else if(*(data_buf+2)==0x06)//MAP
+		{	
+		for(i=0;i<6;i++){
+		circle.map[i][0]=(*(data_buf+4+i*4));//check  N
+		circle.map[i][1]=((int16_t)(*(data_buf+5+i*4)<<8)|*(data_buf+6+i*4));//x
+		circle.map[i][2]=(int16_t)(*(data_buf+7+i*4));//y
+		//circle.map[i][3]=(int16_t)(*(data_buf+8+i*4));//r
+		}
+		}
 		else if(*(data_buf+2)==0x15)//Laser
   {
 	
@@ -1004,9 +1013,8 @@ void CopeSerialData(unsigned char ucData)
 	if(!(*(data_buf)==0xAA && *(data_buf+1)==0xAF))		return;		//ÅÐ¶ÏÖ¡Í·
 	if(*(data_buf+2)==0x31)//SLAM_frame
   {
-//	circle.connect=1;
-//	circle.lose_cnt=0;
-//	circle.check=(*(data_buf+4));///10.;Rol_yun,Pit_yun,Yaw_yun;
+	m100.mems_board_connect=1;
+	m100.mems_loss_cnt=0;
 	ultra_distance=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
 	ALT_POS_SONAR_HEAD=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/1000.;
 	//ultra_distance=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
@@ -1780,8 +1788,9 @@ switch(sel){
 	
 	SendBuff4[nrf_uart_cnt++]=1;//module.acc_imu==2&&module.gyro_imu==2&&module.hml_imu==2;
 	
-	
-	
+	SendBuff4[nrf_uart_cnt++]=LED[0];
+	SendBuff4[nrf_uart_cnt++]=LED[1];
+	SendBuff4[nrf_uart_cnt++]=LED[2];
 	
   SendBuff4[cnt_reg+3] =(nrf_uart_cnt-cnt_reg)-4;
 	for( i=cnt_reg;i<nrf_uart_cnt;i++)

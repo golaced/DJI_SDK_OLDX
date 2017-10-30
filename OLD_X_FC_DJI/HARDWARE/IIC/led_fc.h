@@ -29,7 +29,7 @@ void LED_MPU_Err(void);
 void LED_Mag_Err(void);
 void LED_MS5611_Err(void);
 
-extern u8 LED_Brightness[4];
+extern u8 LED_Brightness[4],LED[3];
 
 
 		//带参宏，可以像内联函数一样使用
