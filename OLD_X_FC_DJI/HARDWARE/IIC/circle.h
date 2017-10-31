@@ -54,7 +54,8 @@ Flight status val	status name
  u16 mems_loss_cnt;
 }M100;
 extern M100 m100;
-extern float target_map[20][3];
+#define MAP_NUM 20
+extern float target_map[MAP_NUM][4];
 void Clear_map(void);
 void map_builder(void);
 #endif

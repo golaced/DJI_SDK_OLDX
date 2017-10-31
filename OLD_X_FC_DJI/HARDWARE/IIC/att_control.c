@@ -817,6 +817,8 @@ void AUTO_LAND_FLYUP(float T)
 						state=SU_CHECK_TAR;
 						#elif defined(DEBUG_TARGET_AVOID)
 						state=SU_CHECK_TAR;
+						#elif defined(DEBUG_MAPPING)
+						state=SU_MAP2; Clear_map();
 						#else
 						state=SU_HOLD;
 						#endif
@@ -959,7 +961,67 @@ void AUTO_LAND_FLYUP(float T)
 					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
 				 
-		break;					 
+		break;			
+
+    case SU_MAP_TO:
+    cnt_retry=0;
+		     if((circle.check&&circle.connect)||force_check)
+					 cnt_circle_check++;
+				 else
+					 cnt_circle_check=0;
+    	if(cnt_circle_check>3&&
+				ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
+				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15)
+					 {
+					if(cnt[4]++>0.4/T)
+				 {
+					 if(mode.en_flow_break)
+					 {state=SD_HOLD_BREAK;Flow_save_tar_b();} 	 
+					 else
+					 state=SD_HOLD2;
+					 cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}} 
+				 else
+					cnt[4]=0; 
+			   			 }
+				 else
+					cnt[0]=0; 
+				 
+				 flow_head_flag=1;
+					
+				 #if USE_M100   //warning need test
+				 if(thr_sel[2]>5/T)
+					 m100_gps_in=1;
+				 else if(ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S*0.15)
+					 thr_sel[2]++;
+			
+				 #else
+				 m100_gps_in=0;
+				 #endif
+				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
+						if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO_S&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S)||m100_gps_in)))
+				  {
+					  
+					 if(cnt[1]++>0.4/T){
+					 state=SD_HOLD;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+				
+					}	else
+						cnt[1]=0;
+			    }
+				 
+					 if(thr_sel[1]++>30/T){
+					 state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+					 }
+					
+					if(state_pass)
+					{state_pass=0;state=SD_HOLD;m100_gps_in=fly_cover_cnt=0;}
+					
+				 if(over_time==1)
+						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+					else if(over_time==2)
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	
+				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+					break; 			
   	//----------------------------------------巡航--------------------------------------------------	 
 		
 		case SU_TO_CHECK_POS://循航到检测目标位置
@@ -1017,7 +1079,13 @@ void AUTO_LAND_FLYUP(float T)
 					  if(tar_need_to_check_odroid[2]==tar_buf[i])
 						{state=SU_TO_CHECK_POS;break;}	
 					  else
-					  state=SU_TO_START_POS;}
+					  #if USE_MAP
+						if(target_map[tar_need_to_check_odroid[2]][0]!=0&&target_map[tar_need_to_check_odroid[2]][1]!=0)
+						state=SU_MAP_TO;		
+						#else	
+					  state=SU_TO_START_POS;
+						#endif
+						}
 					  #endif
 					 cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}} 
 				 else
@@ -1643,6 +1711,71 @@ mode.en_rth_mine=0;
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 				}
 			break;	 
+			case SU_MAP_TO:
+				  if(!mode.en_gps){
+					if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
+					nav_land[PITr]=ultra_ctrl_out_head;
+					else	
+					nav_land[PITr]=0;
+				  if((!mode.dj_by_hand&&mode.en_track_forward&&mode.hold_use_flow))//高度限制已经在最外边加上
+					{
+						Flow_set_tar(target_position_task_e[1]*2);
+					if(mode.en_dji_yaw)
+					{if(ABS(ctrl_2.err.z)<2.5&&(ABS(ultra_ctrl_head.err1)<120))	
+							nav_land[ROLr]=track.forward;//flow_control_out;	
+							else
+							nav_land[ROLr]=0;}
+					else{
+					if(mode.en_gps1)	
+					{nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);tar_point_globle[0]=way_point[1][0]; tar_point_globle[1]=way_point[1][1];}
+					else
+					nav_land[ROLr]=track.forward;//flow_control_out;
+						
+					}
+					}	
+					else  if((!mode.dj_by_hand&&mode.hold_use_flow))
+					nav_land[ROLr]=flow_control_out;	
+					else
+					{nav_land[ROLr]=0;}
+					
+						if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
+					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])nav_land[PITr]=-AVOID_RC*k_m100[4];
+					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3)nav_land[PITr]=-AVOID_RC*k_m100[4];
+				 }
+				 else  if(!mode.dj_by_hand&&mode.en_track_forward)//------------------GPS
+				 {
+					if(target_map[tar_need_to_check_odroid[2]][0]!=0&&target_map[tar_need_to_check_odroid[2]][1]!=0)
+					{
+				  tar_point_globle[0]=target_map[tar_need_to_check_odroid[2]][0]; 
+					tar_point_globle[1]=target_map[tar_need_to_check_odroid[2]][1];//set
+					}
+					else{
+				  tar_point_globle[0]=way_point[1][0]; tar_point_globle[1]=way_point[1][1];//set
+					}
+					if(fly_cover_cnt++>1.5/T){ fly_cover_cnt=5/T;
+					if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
+						nav_land[PITr]=ultra_ctrl_out_head;
+						else	
+						nav_land[PITr]=0;
+					}
+					else
+					{
+					if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
+						nav_land[PITr]=LIMIT(ultra_ctrl_out_head,-100,0);
+						else	
+						nav_land[PITr]=0;
+					}
+						
+					if((ABS(ultra_ctrl_head.err1)<1000))		
+			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
+					 
+					 	if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
+					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
+					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
+				 }	
+			break;
+				 
+				 
 			//-----------------------------------------MISSION	 
 			case SU_TO_START_POS://导航到起始点
 				  if(!mode.en_gps){
@@ -1975,6 +2108,13 @@ u16 Heigh_thr=LIMIT(ultra_ctrl_out*0.4,-100,100)*k_m100[2]+OFF_RC_THR;
 			break;
 			case SU_MAP3://keep height
 				exp_height=exp_height_back;
+			if(mode.en_dji_h&&!dji_rst_protect&&((Rc_Pwm_Inr_mine[RC_THR]>450+1000)&&(Rc_Pwm_Inr_mine[RC_THR]<550+1000)))
+			Rc_Pwm_Out_mine[RC_THR]=Heigh_thr;
+			else
+			Rc_Pwm_Out_mine[RC_THR]=Rc_Pwm_Inr_mine[RC_THR];
+			break;			
+      case SU_MAP_TO://keep height
+				exp_height=exp_height_front;
 			if(mode.en_dji_h&&!dji_rst_protect&&((Rc_Pwm_Inr_mine[RC_THR]>450+1000)&&(Rc_Pwm_Inr_mine[RC_THR]<550+1000)))
 			Rc_Pwm_Out_mine[RC_THR]=Heigh_thr;
 			else

@@ -124,24 +124,40 @@ void circle_control(float T)
 
 
 //---------------------------MAP----------------
-float target_map[20][3];
+float target_map[MAP_NUM][4];//lat lon h init 
 void Clear_map(void){
 	u8 i;
-	for(i=0;i<20;i++)
-	target_map[i][0]=target_map[i][1]=target_map[i][2]=0;
+	for(i=0;i<MAP_NUM;i++)
+	target_map[i][0]=target_map[i][1]=target_map[i][2]=target_map[i][3]=0;
 }
 
 
 
-int pix_ero=10;
+int pix_ero=MID_X*0.25;
+float map_correct_step=0.69;
 void map_builder(void){
 	u8 i;
 	
 	for(i=0;i<6;i++){		
-	if(circle.map[i][0]==1&&ABS(circle.map[i][1]-MID_X)<pix_ero)	
-	target_map[i][0]=gps_data.latitude;
-	target_map[i][1]=gps_data.longitude;
-	target_map[i][2]=ALT_POS_SONAR2;
+	if(circle.map[i][0]!='N'&&ABS(circle.map[i][1]-MID_X)<pix_ero&&gps_data.latitude!=0&&gps_data.longitude!=0){	
+		if(target_map[circle.map[i][0]][3]==0){
+		target_map[circle.map[i][0]][3]=1;
+		target_map[circle.map[i][0]][0]=gps_data.latitude;
+		target_map[circle.map[i][0]][1]=gps_data.longitude;
+		target_map[circle.map[i][0]][2]=ALT_POS_SONAR2;
+		}
+		else
+		{
+		float flt_use;
+		if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
+			flt_use=map_correct_step;
+		else
+			flt_use=map_correct_step/2;
+		target_map[circle.map[i][0]][0]=target_map[circle.map[i][0]][0]*flt_use+(1-flt_use)*gps_data.latitude;
+		target_map[circle.map[i][0]][1]=target_map[circle.map[i][0]][1]*flt_use+(1-flt_use)*gps_data.longitude;
+		target_map[circle.map[i][0]][2]=target_map[circle.map[i][0]][2]*flt_use+(1-flt_use)*ALT_POS_SONAR2;
+		}
+	}
   }
 }
 
@@ -237,9 +253,6 @@ double way_point[2][2]={
 											  30.8498344, 119.6145401,
 											  30.8498344, 119.6146316
 };
-//double way_point[2][2]={39.9626144, 116.3038848, //正飞终点  GPS航点测试
-//												39.962736 , 116.303872};  //倒飞终点
-
 double tar_point_globle[2]={39.9626688, 116.3039488};//全局输出
 double tar_now_gps[2];
 double tar_point_globler[2]={39.9626688, 116.3039488};//全局输出
@@ -259,11 +272,11 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
 		 set_point1=1;
-	 else if(fabs(m100.Rc_pit)<1500&&fabs(m100.Rc_rol)<1500&&fabs(m100.Rc_yaw)<1500)
+	 else if(ABS(m100.Rc_pit)<1500&&ABS(m100.Rc_rol)<1500&&ABS(m100.Rc_yaw)<1500)
 		 set_point1=0;
 	 lon = m100.Lon;
 	 lat = m100.Lat;
-	 if(m100.GPS_STATUS>=3&&!dji_rst_protect)
+	 if(m100.STATUS>0&&m100.Lat!=0&&m100.Lon!=0&&!dji_rst_protect)
 	 gpsx.gpssta=1;
 	 else
 	 gpsx.gpssta=0;	 
@@ -362,7 +375,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	navUkfCalcGlobalDistance(lat, lon, &y[0], &y[1]);//0->north 1->east
 	
-	if(fabs(y[0]>1000)||fabs(y[1]>1000))
+	if(ABS(y[0]>1000)||ABS(y[1]>1000))
 	{
 	 navUkfSetHereAsPositionTarget();
 	 navUkfCalcGlobalDistance(lat, lon, &y[0], &y[1]);

@@ -563,7 +563,7 @@ u8 m100_data_refresh;
 		m100.Rc_mode=(float)((int16_t)(*(data_buf+36)<<8)|*(data_buf+37));
 		m100.Rc_gear=(float)((int16_t)(*(data_buf+38)<<8)|*(data_buf+39));
 		m100.STATUS=*(data_buf+40);		
-		m100.GPS_STATUS=*(data_buf+41)&&m100.STATUS;
+		m100.GPS_STATUS=*(data_buf+41);
 		m100.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
 		m100.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
 		m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
@@ -1017,7 +1017,7 @@ void CopeSerialData(unsigned char ucData)
 	m100.mems_loss_cnt=0;
 	ultra_distance=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
 	ALT_POS_SONAR_HEAD=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/1000.;
-	//ultra_distance=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
+	S_head=((int16_t)(*(data_buf+8)<<8)|*(data_buf+9));
 	Rol_yun=(float)((int16_t)(*(data_buf+10)<<8)|*(data_buf+11))/100.;
 	Pit_yun=(float)((int16_t)(*(data_buf+12)<<8)|*(data_buf+13))/100.;
 	Yaw_yun=(float)((int16_t)(*(data_buf+14)<<8)|*(data_buf+15))/100.;

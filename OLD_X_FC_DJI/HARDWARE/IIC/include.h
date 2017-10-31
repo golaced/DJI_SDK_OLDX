@@ -306,9 +306,10 @@ extern u8 state_set_point;
 #define DEBUG_IN_ROOM 0
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
 //#define DEBUG_TARGET_AVOID //debug shoot and track 
+#define DEBUG_MAPPING //debug shoot and track 
 //#define DEBUG_TRACK //debug shoot and track 
 //#define DEBUG_GPS_NAV
-#define DEBUG_HOLD_HEIGHT
+//#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
 #endif
 
