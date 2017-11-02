@@ -266,11 +266,16 @@ void Flow_set_tar(float set);
 //--------------------------------------ZHB----------------------------------------
 #define TEST_GPS 0
 #define USE_M100 1
-#define USE_MAP 0 //使用MAP信息
+#define USE_MAP 1 //使用MAP信息
+#define USE_PAN_800 1
 //云台初始化位置
+#if USE_PAN_800
+#define  PWM_DJ0 1500
+#define	 PWM_DJ1 1500
+#else
 #define  PWM_DJ0  1630//1680//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );  俯仰
 #define	 PWM_DJ1 1500//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );  左右
-
+#endif
 
 extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitch_DJ,Roll_DJ;;//射击偏差cyds@stepholdings.com 
 
@@ -306,7 +311,7 @@ extern u8 state_set_point;
 #define DEBUG_IN_ROOM 0
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
 //#define DEBUG_TARGET_AVOID //debug shoot and track 
-#define DEBUG_MAPPING //debug shoot and track 
+//#define DEBUG_MAPPING //debug shoot and track 
 //#define DEBUG_TRACK //debug shoot and track 
 //#define DEBUG_GPS_NAV
 //#define DEBUG_HOLD_HEIGHT

@@ -682,3 +682,25 @@ void Usart2_Init(u32 br_num)//--GOL-link
 	//使能USART2
 	USART_Cmd(USART2, ENABLE); 
 }
+u16 FC_connect,FC_loss;
+void USART2_IRQHandler(void)
+{ 
+	u8 com_data;
+	if(USART2->SR & USART_SR_ORE)//ORE中断
+	{
+		com_data = USART2->DR;
+	}
+
+  //接收中断
+	if( USART_GetITStatus(USART2,USART_IT_RXNE) )
+	{
+		USART_ClearITPendingBit(USART2,USART_IT_RXNE);//清除中断标志
+
+		com_data = USART2->DR;
+		if(com_data==0xAA)
+		{
+		  FC_connect=1;
+			FC_loss=0;
+		}
+	}
+}

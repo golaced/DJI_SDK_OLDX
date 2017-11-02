@@ -95,8 +95,13 @@ int main(void)
 //system
 #define AUX_SEL 1
 #if AUX_SEL //big
+  #if USE_PAN_800
+	track.control_k=0.325;
+	track.control_k_miss=0.325;
+	#else
   track.control_k=0.325;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
 	track.control_k_miss=0.325;//云台控制增益2.8;//;
+	#endif
 #else  //small
   track.control_k=0.45;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
 	track.control_k_miss=0.45;//云台控制增益2.8;//;

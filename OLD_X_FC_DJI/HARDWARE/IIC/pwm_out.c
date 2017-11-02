@@ -10,7 +10,8 @@
 #define ACCURACY 10000 //u16(2500/0.25) //accuracy
 #define PWM_RADIO 4//(8000 - 4000)/1000.0
 
-u16 shoot_cnt[3]={10,6,0};
+//u16 shoot_cnt[3]={10,6,0};
+u16 shoot_cnt[3]={10,3,0};
 void EN_SHOOT(u8 on)
 {
 static u16 cnt;	

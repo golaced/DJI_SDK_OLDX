@@ -244,8 +244,8 @@ _st_height_pid_v gps_ctrl[2];
 _st_height_pid gps_pid;
 double lon,lat;
 double tar_pos_gps[2];//测试
-float flt_gps=0.5;
-u16 MAX_GPS=100*1.5;
+float flt_gps=0.618;
+u16 MAX_GPS=100*2;//100*1.5
 u8 gps_target_change;
 double home_point[2]={30.8498039, 119.614204};//起飞点
 double check_way_point[2]={30.8498172, 119.6145019};//检查点
@@ -262,12 +262,23 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 { static u8 init,state;
 	float out_temp[2];
 	u8 set_gps_point;
+	_st_height_pid gps_pid_use;
+	float gain_out=0.4;
 	if(!init){init=1;
 		gps_pid.kp=0.125;//0.2;
 		gps_pid.ki=0.00;//01;
 		gps_pid.kd=1.888;
 	}
-	
+		if(state==SU_MAP1||state==SU_MAP2||state==SU_MAP3){
+		gps_pid_use.kp=gps_pid.kp*1.618;
+		gps_pid_use.ki=gps_pid.ki;
+		gps_pid_use.kd=gps_pid.kd;
+		gain_out=0.8;
+		}else{
+		gps_pid_use.kp=gps_pid.kp;
+		gps_pid_use.ki=gps_pid.ki;
+		gps_pid_use.kd=gps_pid.kd;
+		}
 	#if USE_M100
 	
 	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
@@ -413,26 +424,26 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	//PID
   //N
 	if(gps_pid.ki==0||flag)gps_ctrl[0].err_i=0;
-	gps_ctrl[0].err = ( gps_pid.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[0],25),-max_ero0,max_ero0) );//mm
-	gps_ctrl[0].err_i += gps_pid.ki *gps_ctrl[0].err *T;
+	gps_ctrl[0].err = ( gps_pid_use.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[0],25),-max_ero0,max_ero0) );//mm
+	gps_ctrl[0].err_i += gps_pid_use.ki *gps_ctrl[0].err *T;
 	gps_ctrl[0].err_i = LIMIT(gps_ctrl[0].err_i,-1 *ULTRA_INT,1 *ULTRA_INT);
-	gps_ctrl[0].err_d = gps_pid.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[0].err - gps_ctrl[0].err_old) );
+	gps_ctrl[0].err_d = gps_pid_use.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[0].err - gps_ctrl[0].err_old) );
 	gps_ctrl[0].pid_out = gps_ctrl[0].err + gps_ctrl[0].err_i + gps_ctrl[0].err_d;
 	gps_ctrl[0].pid_out = LIMIT(gps_ctrl[0].pid_out,-1000,1000);
 	gps_ctrl[0].err_old = gps_ctrl[0].err;
 	//E
 	if(gps_pid.ki==0||flag)gps_ctrl[1].err_i=0;
-	gps_ctrl[1].err = ( gps_pid.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[1],25),-max_ero1,max_ero1) );//mm
-	gps_ctrl[1].err_i += gps_pid.ki *gps_ctrl[1].err *T;
+	gps_ctrl[1].err = ( gps_pid_use.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[1],25),-max_ero1,max_ero1) );//mm
+	gps_ctrl[1].err_i += gps_pid_use.ki *gps_ctrl[1].err *T;
 	gps_ctrl[1].err_i = LIMIT(gps_ctrl[1].err_i,-1 *ULTRA_INT,1 *ULTRA_INT);
-	gps_ctrl[1].err_d = gps_pid.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[1].err - gps_ctrl[1].err_old) );
+	gps_ctrl[1].err_d = gps_pid_use.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[1].err - gps_ctrl[1].err_old) );
 	gps_ctrl[1].pid_out = gps_ctrl[1].err + gps_ctrl[1].err_i + gps_ctrl[1].err_d;
 	gps_ctrl[1].pid_out = LIMIT(gps_ctrl[1].pid_out,-1000,1000);
 	gps_ctrl[1].err_old = gps_ctrl[1].err;
 	
 	
-	nav_Data.holdSpeedN = -gps_ctrl[0].pid_out*0.4 ;
-	nav_Data.holdSpeedE = -gps_ctrl[1].pid_out*0.4 ;
+	nav_Data.holdSpeedN = -gps_ctrl[0].pid_out*gain_out ;
+	nav_Data.holdSpeedE = -gps_ctrl[1].pid_out*gain_out ;
 
 	//x-> pitch  y->roll  --->ero
 	nav_Data.velX = 	nav_Data.holdSpeedN * navUkfData.yawCos + 	nav_Data.holdSpeedE * navUkfData.yawSin;

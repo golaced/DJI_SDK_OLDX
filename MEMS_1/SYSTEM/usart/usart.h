@@ -39,6 +39,7 @@ void Sonar_Init(u32 br_num);//-------SONAR
 void Ultra_Duty();
 
 void Usart2_Init(u32 br_num);//--GOL-link
+extern u16 FC_connect,FC_loss;
 extern int ultra_distance;
 #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
 #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))

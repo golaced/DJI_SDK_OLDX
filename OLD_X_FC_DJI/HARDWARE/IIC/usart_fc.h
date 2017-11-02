@@ -403,4 +403,5 @@ extern struct SGPSV 		stcGPSV;
 
 extern float Rol_yun,Pit_yun,Yaw_yun;
 extern float Rol_yun_rate,Pit_yun_rate,Yaw_yun_rate;
+void UsartSend_GOL_LINK_NAV(uint8_t ch);
 #endif

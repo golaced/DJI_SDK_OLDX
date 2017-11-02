@@ -54,6 +54,7 @@ float k_pan_z=0.04;
 u8 rc_thr_mid=0;
 float flt_gro_z=0.8;
 float Yaw_Follow_Dead= 25/2;
+#define MISS_RE_SET 3
 #if USE_M100
 float SHOOT_PWM_OFF0=-66,
 #else
@@ -286,7 +287,7 @@ void inner_task(void *pdata)
 	static u16 cnt_miss_track;
 	if(!mode.dj_by_hand&&(state_v==SD_HOLD2||state_v==SD_SHOOT||state_v==SG_LOW_CHECK))
 	{
-	if(cnt_miss_track++>6.5/0.005)//hold2
+	if(cnt_miss_track++>MISS_RE_SET/0.005)//hold2
 	{cnt_miss_track=0;
 	PWM_DJ[0]=PWM_DJ0;
 	PWM_DJ[1]=PWM_DJ1;}
@@ -704,6 +705,8 @@ void uart_task(void *pdata)
 						#endif
 							}		
 							
+						UsartSend_GOL_LINK_NAV(0xAA);//MEMS	
+							
 				if(UART_UP_LOAD_SEL_FORCE!=0)
           UART_UP_LOAD_SEL=UART_UP_LOAD_SEL_FORCE;				 
 					if(DMA_GetFlagStatus(DMA2_Stream7,DMA_FLAG_TCIF7)!=RESET)//??DMA2_Steam7????
@@ -833,7 +836,7 @@ static u8 cnt;
 	if(mouse.lose_cnt++>2/0.05)
 		mouse.connect=0;
 	if(m100.mems_loss_cnt++>2/0.05)
-		m100.mems_board_connect=0;
+		SONAR_HEAD_CHECK[0]=m100.mems_board_connect=0;
 	if(ABS(m100.Pit)>90||ABS(m100.Rol)>90)
 	{cnt_1=0;dji_rst_protect=1;}
 	

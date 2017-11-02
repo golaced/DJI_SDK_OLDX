@@ -1024,6 +1024,7 @@ void CopeSerialData(unsigned char ucData)
 	Rol_yun_rate=(float)((int16_t)(*(data_buf+16)<<8)|*(data_buf+17))/100.;
 	Pit_yun_rate=(float)((int16_t)(*(data_buf+18)<<8)|*(data_buf+19))/100.;
 	Yaw_yun_rate=(float)((int16_t)(*(data_buf+20)<<8)|*(data_buf+21))/100.;
+	SONAR_HEAD_CHECK[0]=1;
 	}	
 }
 
