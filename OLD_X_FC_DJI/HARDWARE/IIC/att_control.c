@@ -776,6 +776,10 @@ u8 m100_gps_in=0;//state_v
 #define GPS_ERO_S 450
 #endif
 #define NAV_USE_AVOID 1
+#define FAKE_TAR_NUM 5
+u8 fake_target[FAKE_TAR_NUM]={8,4,9,1,7};
+u8 fake_target_force=0;
+u8 fake_target_flag=0;
 void AUTO_LAND_FLYUP(float T)
 {static u8 state,init,cnt_retry;
  static float sonar_r,bmp_r,bmp_thr;
@@ -785,6 +789,7 @@ void AUTO_LAND_FLYUP(float T)
   static u32 cnt_back_home,cnt_map_home;
 	static u16 fly_cover_cnt;
 	static u8 cnt_first_avoid;
+	static int pan_reg[2];
 	u16 i,j;
 	time_fly=cnt_back_home*T;
 	  u8 temp_pass=!force_check_pass;
@@ -797,7 +802,7 @@ void AUTO_LAND_FLYUP(float T)
 	switch(state)
 	{//-------------------------------------------------起飞
 		case SG_LOW_CHECK://low thr check
-			fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
+			fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
 		  tar_cnt=0;
 		  for(i=0;i<19;i++)
 		    tar_buf[i]=66;
@@ -912,8 +917,12 @@ void AUTO_LAND_FLYUP(float T)
 			tar_need_to_check_odroid[2]=66;
 			if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 					if(mode.en_gps){
+						#if NAV_ERO_USE_LINE
+						if(ABS(nav_Data.dis_ero)<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+            #else
 								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
-							{
+            #endif
+								{
 							 if(cnt[1]++>0.6/T)
 							 {state=SU_TO_CHECK_POS;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 
@@ -939,8 +948,12 @@ void AUTO_LAND_FLYUP(float T)
 			tar_need_to_check_odroid[2]=66;
 			if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 					if(mode.en_gps){
-								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
-							{
+						#if NAV_ERO_USE_LINE
+						if(ABS(nav_Data.dis_ero)<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+						#else
+						if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+						#endif
+								{
 							 if(cnt[1]++>0.6/T)
 							 {state=SU_TO_CHECK_POS;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 
@@ -998,8 +1011,13 @@ void AUTO_LAND_FLYUP(float T)
 				 m100_gps_in=0;
 				 #endif
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
-						if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+					 #if NAV_ERO_USE_LINE
+					  if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.dis_ero)<GPS_ERO)||m100_gps_in)))
+            #else
+					 if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
 							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO_S&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S)||m100_gps_in)))
+					 #endif
 				  {
 					  
 					 if(cnt[1]++>0.4/T){
@@ -1093,7 +1111,40 @@ void AUTO_LAND_FLYUP(float T)
 			   			 }
 				 else
 					cnt[4]=0; 
-		
+		    //---------------------------无屏幕流程测试
+				 #if MISSION_USE_FAKE_TARGET
+				 if(ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
+				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15)
+					 {
+						if(fake_target_force!=0)
+						tar_need_to_check_odroid[2]=fake_target_force;
+            else						
+				    tar_need_to_check_odroid[2]=fake_target[fake_target_flag++];
+						if(fake_target_flag>FAKE_TAR_NUM)	
+						{fake_target_flag=FAKE_TAR_NUM;
+						state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+					  #if defined(DEBUG_TARGET_AVOID)
+					  tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
+					  state=SU_TO_CHECK_POS;
+					  #else				  
+					  for(i=0;i<19;i++){
+					  if(tar_need_to_check_odroid[2]==tar_buf[i])
+						{state=SU_TO_CHECK_POS;break;}	
+					  else
+					  #if USE_MAP
+						if(target_map[tar_need_to_check_odroid[2]][0]!=0&&target_map[tar_need_to_check_odroid[2]][1]!=0)
+						state=SU_MAP_TO;		
+						#else	
+					  state=SU_TO_START_POS;
+						#endif
+						}
+					  #endif
+					  cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+					  } 
+				  	}
+				  
+					
+				 #endif
 				  #if defined(DEBUG_HOLD_WALL) 
 					#elif defined(DEBUG_HOLD_HEIGHT) 
 				  #elif defined(DEBUG_TARGET_AVOID)
@@ -1203,9 +1254,14 @@ void AUTO_LAND_FLYUP(float T)
 				 m100_gps_in=0;
 				 #endif
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
-						if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+					#if NAV_ERO_USE_LINE
+					  if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.dis_ero)<GPS_ERO)||m100_gps_in)))
+            #else
+					 if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
 							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO_S&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S)||m100_gps_in)))
-				  {
+				  #endif
+					 {
 					  
 					 if(cnt[1]++>0.4/T){//&&(tar_point_globler[0]!=tar_point_globle[0])&&(tar_point_globler[1]!=tar_point_globle[1])){
 					 state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
@@ -1265,9 +1321,14 @@ void AUTO_LAND_FLYUP(float T)
 				 m100_gps_in=0;
 				 #endif
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
-						if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+						#if NAV_ERO_USE_LINE
+					  if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
+							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.dis_ero)<GPS_ERO)||m100_gps_in)))
+            #else
+					 if((now_position[1]>target_position_task_s[1]&&(mode.en_gps1==0&&mode.en_gps==0))||
 							((mode.en_gps1||mode.en_gps)&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A')&&((ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO_S&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S)||m100_gps_in)))
-				  {
+				    #endif
+					 {
 					  if(cnt[1]++>0.34/T)
 						{state=SU_TO_CHECK_POS;m100_gps_in=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					   
@@ -1311,7 +1372,7 @@ void AUTO_LAND_FLYUP(float T)
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
 					break; 	
 				 
-    case SD_HOLD2://云台跟踪目标控制
+    case SD_HOLD2://云台跟踪目标控制 <---------------------------------------------------------
 		
 		cnt_retry=0;
     	if(mode.en_shoot&&ABS(PWM_DJ[1]-PWM_DJ1)<SHOOT_PWM_DEAD1&&ABS(PWM_DJ[0]-(PWM_DJ0+SHOOT_PWM_OFF0))<SHOOT_PWM_DEAD0&&
@@ -1331,12 +1392,23 @@ void AUTO_LAND_FLYUP(float T)
 			 else
 					cnt[4]=0; 
 			 
+			if(ABS(PWM_DJ[1]-1500)>1.618*DEAD_NAV_RC) 
+			pan_reg[1]=PWM_DJ[1]-1500;
+			 
 			if(mode.en_track_forward)
 			{    if(cnt_miss_track++>2/0.005)
 							{
 							#if defined(DEBUG_TRACK)  
 							#else
-							if(flow_head_flag)
+							u8 flag1,flag_use;
+              if(pan_reg[1]>0)
+							flag1=1;
+              else
+							flag1=0;	
+								//<---------------丢失后策略
+							flag_use=flow_head_flag;
+							flag_use=flag1;
+							if(flag_use)
 							state=SD_HOLD;
 							else 
 							state=SD_HOLD_BACK;	
@@ -1380,7 +1452,8 @@ void AUTO_LAND_FLYUP(float T)
 					 else
 			 {cnt[0]=0;cnt[4]=0; }
 			 
-			 
+			 if(ABS(PWM_DJ[1]-1500)>1.618*DEAD_NAV_RC) 
+			pan_reg[1]=PWM_DJ[1]-1500;
 			 
 			 if(mode.en_track_forward)
 			{    if(cnt_miss_track++>2/0.005)

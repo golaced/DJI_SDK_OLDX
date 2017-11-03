@@ -212,12 +212,9 @@ void ANO_DT_Data_Exchange(void)
 			 }
 		 else{sel[1]=0;
 			#if !USE_HT_GROUND 
-//	   ANO_DT_Send_QR1(POS_UKF_X-off_flow_pos[X]-pos_off[X],-POS_UKF_Y-off_flow_pos[Y]-pos_off[Y],ALT_POS_SONAR2);
-//			 if(mode.flow_hold_position==0&&NS==2)
-//			 {
-//				pos_off[X]=POS_UKF_X;
-//				pos_off[Y]=POS_UKF_Y;
-//			 }	
+			 float drone[2],mark[2];
+			 navUkfCalcGlobalDistance(gps_data.latitude, gps_data.longitude, &drone[0], &drone[1]);
+	     ANO_DT_Send_QR1(drone[0],drone[1],ALT_POS_SONAR2);
       #endif			 
 		 }
 		 
@@ -303,15 +300,15 @@ void ANO_DT_Data_Exchange(void)
 											ultra_pid.kp,ultra_pid.ki,ultra_pid.kd,
 											0,0,0);
 	  }
-    else if(sel[3]==3){sel[3]=4;//Pos pos    Pos pos eso Pos spd eso
-//		ANO_DT_Send_PID(4,nav_pos_pid.kp,nav_pos_pid.ki,nav_pos_pid.kd,
-//											(float)eso_pos[X].b0/1000.,(float)eso_pos[Zr].b0/1000.,(float)eso_pos[X].eso_dead/1000.,
-//											(float)eso_pos_spd[Zr].b0/1000.,nav_spd_pid.flt_nav,(float)eso_pos_spd[Zr].eso_dead/1000.);
+    else if(sel[3]==3){sel[3]=4;//ZHB system
+		ANO_DT_Send_PID(4,(float)(SHOOT_PWM_OFF0+500)/1000.,(float)(SHOOT_PWM_OFF1+500)/1000.,(float)fake_target_force/1000.,
+											(float)gain_global/1000.,(float)pix_ero/1000.,(float)SHOOT_PWM_DEAD0/1000.,
+											(float)SHOOT_PWM_DEAD1/1000.,(float)state_pass/1000.,(float)(UART_UP_LOAD_SEL_FORCE)/1000.);
 		}
-		else if(sel[3]==4){sel[3]=5;//					 Pos spd fp  Pos acc
-//		ANO_DT_Send_PID(5,(float)eso_pos_spd[X].b0/1000.,0,0,
-//											nav_spd_pid.f_kp,nav_spd_pid.flt_nav_kd,(float)nav_spd_pid.dead/1000.,
-//											nav_acc_pid.f_kp,nav_acc_pid.kp,(float)nav_acc_pid.dead/1000.);								
+		else if(sel[3]==4){sel[3]=5;//MAP
+		ANO_DT_Send_PID(5,(float)target_map[1][3]/1000.,(float)target_map[2][3]/1000.,(float)target_map[3][3]/1000.,
+											(float)target_map[4][3]/1000.,(float)target_map[5][3]/1000.,(float)target_map[6][3]/1000.,
+											(float)target_map[7][3]/1000.,(float)target_map[8][3]/1000.,(float)target_map[9][3]/1000.);								
 		}
 		else {sel[3]=0;
 		float temp1,temp2;
@@ -519,17 +516,17 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
     }
 	if(*(data_buf+2)==0X13)								//PID4  pos
 	{
-		    //nav_pos_pid.kp  = 0.001*( (vs16)(*(data_buf+4)<<8)|*(data_buf+5) );
-        //nav_pos_pid.ki  = 0.001*( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
-        //nav_pos_pid.kd  = 0.001*( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
+		    SHOOT_PWM_OFF0  = ( (vs16)(*(data_buf+4)<<8)|*(data_buf+5) )-500;
+        SHOOT_PWM_OFF1  = ( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) )-500;
+        fake_target_force  = ( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
 			
-				//eso_pos[Yr].b0=eso_pos[X].b0 = ( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
-				//eso_pos[Zr].b0=               ( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
-				//eso_pos[Yr].eso_dead=eso_pos[X].eso_dead = ( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
+				gain_global = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
+				pix_ero=               ( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
+				SHOOT_PWM_DEAD0= ( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 		
-				//eso_pos_spd[Zr].b0 	= 				( (vs16)(*(data_buf+16)<<8)|*(data_buf+17) );
-        //nav_spd_pid.flt_nav 	= 0.001*( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
-        //eso_pos_spd[Zr].eso_dead	=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
+				SHOOT_PWM_DEAD1= 				( (vs16)(*(data_buf+16)<<8)|*(data_buf+17) );
+        state_pass	= ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
+        UART_UP_LOAD_SEL_FORCE	=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
 		if(f.send_check == 0)
 		{
 			f.send_check = 1;

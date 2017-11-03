@@ -222,37 +222,52 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>force_check,0x0A</ItemText>
+          <ItemText>PWM_DJ</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>PWM_DJ</ItemText>
+          <ItemText>shoot_cnt,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>shoot_cnt,0x0A</ItemText>
+          <ItemText>Rc_Pwm_Out_mine_USE,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Rc_Pwm_Out_mine_USE,0x0A</ItemText>
+          <ItemText>Rc_Pwm_Out_mine,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Rc_Pwm_Out_mine,0x0A</ItemText>
+          <ItemText>Heigh_thr,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Heigh_thr,0x0A</ItemText>
+          <ItemText>nav_land</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>nav_land</ItemText>
+          <ItemText>SONAR_HEAD_CHECK,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>target_map</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>circle.map,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/circle.c\target_map[8]</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -475,6 +490,21 @@
           <count>43</count>
           <WinNumber>2</WinNumber>
           <ItemText>KEY</ItemText>
+        </Ww>
+        <Ww>
+          <count>44</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>ALT_POS_SONAR_HEAD</ItemText>
+        </Ww>
+        <Ww>
+          <count>45</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>S_head,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>46</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>ultra_ctrl_out_head</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

@@ -221,6 +221,7 @@ typedef struct {
 	float holdSpeedE;
 	float velX,velY;
 	float gps_ero_dis_lpf[2];
+	float dis_ero;
 } navigation_gps;
 
 extern navigation_gps nav_Data;

@@ -55,9 +55,10 @@ Flight status val	status name
 }M100;
 extern M100 m100;
 #define MAP_NUM 20
-extern float target_map[MAP_NUM][4];
+extern float target_map[MAP_NUM][5];
 void Clear_map(void);
 void map_builder(void);
+void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *posEast);
 #endif
 
 

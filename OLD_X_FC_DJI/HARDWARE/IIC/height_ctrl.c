@@ -424,8 +424,8 @@ u16 exp_height_head_use;
 	ultra_dis_tmp=ALT_POS_SONAR_HEAD*1000;//ultra_distance;
 			
 	if(ultra_pid_head.ki==0
-			||fabs((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)>DEAD_NAV_RC
-			||fabs((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)>DEAD_NAV_RC
+			||ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)>DEAD_NAV_RC
+			||ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)>DEAD_NAV_RC
 			||(mode.test3==0&&mode.test2==0))
 	ultra_ctrl_head.err_i=0;
  

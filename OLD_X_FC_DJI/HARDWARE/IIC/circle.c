@@ -124,11 +124,11 @@ void circle_control(float T)
 
 
 //---------------------------MAP----------------
-float target_map[MAP_NUM][4];//lat lon h init 
+float target_map[MAP_NUM][5];//lat lon h init 
 void Clear_map(void){
 	u8 i;
 	for(i=0;i<MAP_NUM;i++)
-	target_map[i][0]=target_map[i][1]=target_map[i][2]=target_map[i][3]=0;
+	target_map[i][0]=target_map[i][1]=target_map[i][2]=target_map[i][3]=target_map[i][4]=0;
 }
 
 
@@ -139,7 +139,9 @@ void map_builder(void){
 	u8 i;
 	
 	for(i=0;i<6;i++){		
-	if(circle.map[i][0]!='N'&&ABS(circle.map[i][1]-MID_X)<pix_ero&&gps_data.latitude!=0&&gps_data.longitude!=0){	
+	if(circle.map[i][0]!='N'&&ABS(circle.map[i][1]-MID_X)<pix_ero&&gps_data.latitude!=0&&gps_data.longitude!=0){
+    target_map[i][4]++; 
+		if(target_map[i][4]>10){
 		if(target_map[circle.map[i][0]][3]==0){
 		target_map[circle.map[i][0]][3]=1;
 		target_map[circle.map[i][0]][0]=gps_data.latitude;
@@ -157,6 +159,7 @@ void map_builder(void){
 		target_map[circle.map[i][0]][1]=target_map[circle.map[i][0]][1]*flt_use+(1-flt_use)*gps_data.longitude;
 		target_map[circle.map[i][0]][2]=target_map[circle.map[i][0]][2]*flt_use+(1-flt_use)*ALT_POS_SONAR2;
 		}
+	 }
 	}
   }
 }
@@ -180,7 +183,7 @@ static void navUkfCalcEarthRadius(double lat) {
     navUkfData.r2 = (double)NAV_EQUATORIAL_RADIUS * (double)DEG_TO_RAD / sqrt((double)1.0 - ((double)NAV_E_2 * sinLat2)) * cos(lat * (double)DEG_TO_RAD);
 }
 
-static void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *posEast) {
+void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *posEast) {
     *posNorth = (lat - navUkfData.holdLat) * navUkfData.r1;
     *posEast = (lon - navUkfData.holdLon) * navUkfData.r2;
 }
@@ -193,10 +196,6 @@ static void navUkfResetPosition(float deltaN, float deltaE, float deltaD) {
 	navUkfData.posE[i] += deltaE;
 	navUkfData.posD[i] += deltaD;
     }
-
-//    UKF_POSN += deltaN;
-//    UKF_POSE += deltaE;
-//    UKF_POSD += deltaD;
 }
 
 void navUkfSetGlobalPositionTarget(double lat, double lon) {
@@ -222,23 +221,55 @@ static void navUkfSetLocalPositionTarget(double posN, double posE) {
     float oldPosN, oldPosE;
     float newPosN, newPosE;
 
-   // navUkfCalcLocalDistance(posN, posE, &oldPosN, &oldPosE);
 
     navUkfData.holdLat = posN;
     navUkfData.holdLon = posE;
-
-    //navUkfCalcLocalDistance(posN, posE, &newPosN, &newPosE);
-
-   // navUkfResetPosition(newPosN - oldPosN, newPosE - oldPosE, 0.0f);
 }
 
 void navUkfSetHereAsPositionTarget(void) {
-//    if (navUkfData.flowPosN != 0.0f && navUkfData.flowPosE != 0.0f)
-//	navUkfSetLocalPositionTarget(navUkfData.flowPosN, navUkfData.flowPosE);
-//    else
 	navUkfSetGlobalPositionTarget(gps_data.latitude, gps_data.longitude);
 }
 
+//矢量垂线方程
+void line_function90_from_arrow(float x,float y,float yaw,float *k,float *b)
+{ 
+	float tyaw=90-yaw+0.000011;
+	float k_temp=0;
+  *k=k_temp=-1/tan(tyaw*ANGLE_TO_RADIAN);
+  *b=y-k_temp*x;
+}	
+
+
+//两直线交点
+u8 cross_point_of_lines(float k1,float b1,float k2,float b2,float *x,float *y)
+{ 
+	if(ABS(k1-k2)<0.001){
+		*x=*y=0;
+		return 0;}
+	float x_temp;
+	*x=x_temp=(b1-b2)/(k2-k1+0.00001);
+//	if(fabs(k1)>10000&&fabs(b1)>10000)
+//  *y=0;
+//  else	
+	*y=k1*x_temp+b1;
+	
+	return 1;
+}	
+
+//计算两点距离
+float cal_dis_of_points(float x1,float y1,float x2,float y2)
+{
+return sqrt(pow(x1-x2,2)+pow(y1-y2,2));
+}	
+
+//矢量求直线方程
+void line_function_from_arrow(float x,float y,float yaw,float *k,float *b)
+{ 
+	float tyaw=90-yaw+0.000011;
+	float k_temp=0;
+  *k=k_temp=tan(tyaw*ANGLE_TO_RADIAN);
+  *b=y-k_temp*x;
+}	
 
 _st_height_pid_v gps_ctrl[2];
 _st_height_pid gps_pid;
@@ -408,7 +439,14 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	nav_Data.gps_ero_dis_lpf[0]=flt_gps*Moving_Median(28,3,y[0]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[0];
 	nav_Data.gps_ero_dis_lpf[1]=flt_gps*Moving_Median(29,3,y[1]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[1];
-	
+	//cal_pos_dis_for_line
+	float k[3],b[3];
+	float jiao[2];
+	line_function_from_arrow(0,0,m100.Yaw,&k[0],&b[0]);
+	line_function90_from_arrow(y[0],y[1],m100.Yaw,&k[1],&b[1]);
+	//两直线交点
+  cross_point_of_lines(k[0],b[0],k[1],b[1],&jiao[0],&jiao[1]);
+  nav_Data.dis_ero=cal_dis_of_points(jiao[0],jiao[1],y[0],y[1]);
 	
 //	15075434@qq.com  yang-->15877918559
 	int max_ero0,max_ero1;

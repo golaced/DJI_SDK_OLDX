@@ -60,7 +60,8 @@ float SHOOT_PWM_OFF0=-66,
 #else
 float SHOOT_PWM_OFF0=70,
 #endif
-	SHOOT_PWM_OFF1=6,SHOOT_PWM_DEAD0=80,SHOOT_PWM_DEAD1=60;
+	SHOOT_PWM_OFF1=6,SHOOT_PWM_DEAD0=80+20,
+									 SHOOT_PWM_DEAD1=60+20;
 #if USE_M100
 int YUN_PER_OFF=50;
 #else
@@ -81,6 +82,15 @@ float k_m100_shoot[3]={2.26,0.88,0.66};
 float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
+float gain_global=1;
+float u_gain_by_ero(float in,float gain,u8 sel,float dead)
+{
+    if(ABS(nav_Data.gps_ero_dis_lpf[sel])>dead)
+           return in*gain;
+		else
+			     return in;
+}	
+
 void inner_task(void *pdata)
 {NVIC_InitTypeDef NVIC_InitStructure;
  u8 i;
@@ -131,52 +141,57 @@ void inner_task(void *pdata)
 	
 	#if USE_M100
 	
- if(state_v==SU_CHECK_TAR||state_v==SU_TO_START_POS||state_v==SD_TO_HOME)
+   if(state_v==SU_CHECK_TAR||state_v==SD_TO_HOME)
 	 {
-	 k_m100[0]=k_m100_gps[0];
-	 k_m100[1]=k_m100_gps[1];	 
+	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global;//k_m100_gps[0];
+	 k_m100[1]= u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1];	 
+	 }
+	 
+	 else  if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
+	 {
+	 k_m100[0]=k_m100_gps[0]*gain_global;
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1,1,1000)*gain_global;//k_m100_gps[1]; 
+	 }
+	  else  if(state_v==SU_MAP_TO||state_v==SU_TO_START_POS)
+	 {
+	 k_m100[0]=k_m100_gps[0]*gain_global;
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.328,1,1000)*gain_global;//k_m100_gps[1]; 
 	 }
 	 else if(state_v==SU_TO_CHECK_POS)
 	 {
-	 k_m100[0]=k_m100_gps[0];
-	 if(ABS(nav_Data.gps_ero_dis_lpf[1])>366*2)	 
-	 k_m100[1]=k_m100_gps[1]*1.5;
-   else	 
-	 k_m100[1]=k_m100_gps[1];
+	 k_m100[0]=k_m100_gps[0]*gain_global;
+   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
 	 } 
 	 else if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)
 	 {
-	 k_m100[0]=k_m100_scan[0];
-	 if(ABS(nav_Data.gps_ero_dis_lpf[1])>366*2)	 
-	 k_m100[1]=k_m100_scan[1]*1.5;	 
-	 else
-	 k_m100[1]=k_m100_scan[1]; 
+	 k_m100[0]=k_m100_scan[0]*gain_global;
+	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
 	 	 }
 	  else if(state_v==SD_HOLD2)
 	 {
-	 k_m100[0]=k_m100_track[0];
-	 k_m100[1]=k_m100_track[1];	 
+	 k_m100[0]=k_m100_track[0]*gain_global;
+	 k_m100[1]=k_m100_track[1]*gain_global;	 
 	 	 }
 	 else if(state_v==SD_SHOOT)
 	 {
-	  k_m100[0]=k_m100_track[0];
+	  k_m100[0]=k_m100_track[0]*gain_global;
 		#if SHOOT_USE_YUN	 
-		k_m100[1]=k_m100_track[1];
+		k_m100[1]=k_m100_track[1]*gain_global;
 		#else
 		if((ABS(ultra_ctrl_head.err1)<86)&&ABS(PWM_DJ[1]-PWM_DJ1)<25)	 
-		k_m100[1]=k_m100_shoot[1];
+		k_m100[1]=k_m100_shoot[1]*gain_global;
 		else
-		k_m100[1]=k_m100_track[1];
+		k_m100[1]=k_m100_track[1]*gain_global;
 		#endif	
 	 	 }
 	 else
 	 {
-	 k_m100[0]=1;
-	 k_m100[1]=1;
+	 k_m100[0]=1*gain_global;
+	 k_m100[1]=1*gain_global;
 	 }
 	#else
-   k_m100[0]=1;
-	 k_m100[1]=1
+   k_m100[0]=1*gain_global;
+	 k_m100[1]=1*gain_global
 	#endif
 	
 	
@@ -666,7 +681,7 @@ void m100_task(void *pdata)
 
 //=======================串口 任务函数===========================
 OS_STK  UART_TASK_STK[UART_STK_SIZE];
-u8 UART_UP_LOAD_SEL=0;//<------------------------------UART UPLOAD DATA SEL
+u8 UART_UP_LOAD_SEL=5;//<------------------------------UART UPLOAD DATA SEL
 u8 UART_UP_LOAD_SEL_FORCE;
 u8 state_v_test=0;
 u8 num_need_to_check;
@@ -746,7 +761,13 @@ void uart_task(void *pdata)
 											0,pixel_flow_x_pix,0,
 											pixel_flow_x2*100,flow_compx,0,  
 											wz_speed_flow[0]*100,0,0*1000,
-											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;												
+											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;		
+											case 5:
+											data_per_uart1(
+											exp_height,ultra_dis_lpf,0,
+											exp_height_head,ALT_POS_SONAR_HEAD*1000,0,  
+											0,0,0,
+											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;													
 											default:break;
 											
 											}

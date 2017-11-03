@@ -267,13 +267,15 @@ void Flow_set_tar(float set);
 #define TEST_GPS 0
 #define USE_M100 1
 #define USE_MAP 1 //使用MAP信息
+#define NAV_ERO_USE_LINE 1 //使用航向直线误差作为判断
+#define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define USE_PAN_800 1
 //云台初始化位置
 #if USE_PAN_800
 #define  PWM_DJ0 1500
 #define	 PWM_DJ1 1500
 #else
-#define  PWM_DJ0  1630//1680//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );  俯仰
+#define  PWM_DJ0 1630//1680//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );  俯仰
 #define	 PWM_DJ1 1500//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );  左右
 #endif
 
@@ -299,21 +301,23 @@ extern float k_m100[5];
 extern float k_m100_gps[3];//=  {2.25,2.25,1}; //p r t
 extern float k_m100_scan[3];//= {1,2.25,1};
 extern float k_m100_track[3],k_m100_shoot[3];//={1,1,1};
-extern float k_m100_laser_avoid,k_m100_yaw;//=0.5;
+extern float k_m100_laser_avoid,k_m100_yaw,gain_global;//=0.5;
 extern u8 dji_rst_protect,dji_rst;
 extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss;
 extern u16 dji_miss_cnt;
 extern u16 Rc_Pwm_Out_mine_USE[4]; 
 extern u16 cnt_m100_data_refresh,S_head;
 extern u8 m100_data_refresh;
-extern u8 state_set_point;
+extern u8 state_set_point,state_pass,fake_target_force;
+extern float DJ_YAW_OFF;
+extern int pix_ero;
 #define SHOOT_USE_YUN 1
 #define DEBUG_IN_ROOM 0
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
-//#define DEBUG_TARGET_AVOID //debug shoot and track 
+//#define DEBUG_TARGET_AVOID //debug shoot and track 多目标过滤
 //#define DEBUG_MAPPING //debug shoot and track 
 //#define DEBUG_TRACK //debug shoot and track 
-//#define DEBUG_GPS_NAV
+//#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
 #endif
