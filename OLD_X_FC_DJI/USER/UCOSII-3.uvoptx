@@ -394,115 +394,110 @@
         <Ww>
           <count>24</count>
           <WinNumber>2</WinNumber>
-          <ItemText>altUkfData_sonar.x[1]</ItemText>
+          <ItemText>LED,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>25</count>
           <WinNumber>2</WinNumber>
-          <ItemText>LED,0x0A</ItemText>
+          <ItemText>circle,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>26</count>
           <WinNumber>2</WinNumber>
-          <ItemText>circle,0x0A</ItemText>
+          <ItemText>RxBuffer41</ItemText>
         </Ww>
         <Ww>
           <count>27</count>
           <WinNumber>2</WinNumber>
-          <ItemText>RxBuffer41</ItemText>
+          <ItemText>RxBuffer3,0x10</ItemText>
         </Ww>
         <Ww>
           <count>28</count>
           <WinNumber>2</WinNumber>
-          <ItemText>RxBuffer3,0x10</ItemText>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/circle.c\circle.map,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>29</count>
           <WinNumber>2</WinNumber>
-          <ItemText>\\UCOSII_3\../HARDWARE/IIC/circle.c\circle.map,0x0A</ItemText>
+          <ItemText>state_v_test</ItemText>
         </Ww>
         <Ww>
           <count>30</count>
           <WinNumber>2</WinNumber>
-          <ItemText>state_v_test</ItemText>
+          <ItemText>Rc_Pwm_Out_mine_USE,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>31</count>
           <WinNumber>2</WinNumber>
-          <ItemText>Rc_Pwm_Out_mine_USE,0x0A</ItemText>
+          <ItemText>PWM_DJ</ItemText>
         </Ww>
         <Ww>
           <count>32</count>
           <WinNumber>2</WinNumber>
-          <ItemText>PWM_DJ</ItemText>
+          <ItemText>Rc_Pwm_Out_mine,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>33</count>
           <WinNumber>2</WinNumber>
-          <ItemText>Rc_Pwm_Out_mine,0x0A</ItemText>
+          <ItemText>check_way_point</ItemText>
         </Ww>
         <Ww>
           <count>34</count>
           <WinNumber>2</WinNumber>
-          <ItemText>check_way_point</ItemText>
+          <ItemText>state_set_point</ItemText>
         </Ww>
         <Ww>
           <count>35</count>
           <WinNumber>2</WinNumber>
-          <ItemText>state_set_point</ItemText>
+          <ItemText>ALT_POS_SONAR_HEAD_LASER_SCANER</ItemText>
         </Ww>
         <Ww>
           <count>36</count>
           <WinNumber>2</WinNumber>
-          <ItemText>ALT_POS_SONAR_HEAD_LASER_SCANER</ItemText>
+          <ItemText>ALT_POS_SONAR2</ItemText>
         </Ww>
         <Ww>
           <count>37</count>
           <WinNumber>2</WinNumber>
-          <ItemText>ALT_POS_SONAR2</ItemText>
+          <ItemText>ALT_POS_SONAR_HEAD</ItemText>
         </Ww>
         <Ww>
           <count>38</count>
           <WinNumber>2</WinNumber>
-          <ItemText>ALT_POS_SONAR_HEAD</ItemText>
+          <ItemText>S_head</ItemText>
         </Ww>
         <Ww>
           <count>39</count>
           <WinNumber>2</WinNumber>
-          <ItemText>S_head</ItemText>
+          <ItemText>track,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>40</count>
           <WinNumber>2</WinNumber>
-          <ItemText>track,0x0A</ItemText>
+          <ItemText>k_dj</ItemText>
         </Ww>
         <Ww>
           <count>41</count>
           <WinNumber>2</WinNumber>
-          <ItemText>k_dj</ItemText>
+          <ItemText>d_t</ItemText>
         </Ww>
         <Ww>
           <count>42</count>
           <WinNumber>2</WinNumber>
-          <ItemText>d_t</ItemText>
+          <ItemText>KEY</ItemText>
         </Ww>
         <Ww>
           <count>43</count>
           <WinNumber>2</WinNumber>
-          <ItemText>KEY</ItemText>
+          <ItemText>ALT_POS_SONAR_HEAD</ItemText>
         </Ww>
         <Ww>
           <count>44</count>
           <WinNumber>2</WinNumber>
-          <ItemText>ALT_POS_SONAR_HEAD</ItemText>
-        </Ww>
-        <Ww>
-          <count>45</count>
-          <WinNumber>2</WinNumber>
           <ItemText>S_head,0x0A</ItemText>
         </Ww>
         <Ww>
-          <count>46</count>
+          <count>45</count>
           <WinNumber>2</WinNumber>
           <ItemText>ultra_ctrl_out_head</ItemText>
         </Ww>

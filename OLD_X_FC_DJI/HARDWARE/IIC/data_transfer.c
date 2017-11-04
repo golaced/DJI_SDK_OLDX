@@ -303,7 +303,7 @@ void ANO_DT_Data_Exchange(void)
     else if(sel[3]==3){sel[3]=4;//ZHB system
 		ANO_DT_Send_PID(4,(float)(SHOOT_PWM_OFF0+500)/1000.,(float)(SHOOT_PWM_OFF1+500)/1000.,(float)fake_target_force/1000.,
 											(float)gain_global/1000.,(float)pix_ero/1000.,(float)SHOOT_PWM_DEAD0/1000.,
-											(float)SHOOT_PWM_DEAD1/1000.,(float)state_pass/1000.,(float)(UART_UP_LOAD_SEL_FORCE)/1000.);
+											(float)SHOOT_PWM_DEAD1/1000.,(float)map_dead_cnt/1000.,(float)(UART_UP_LOAD_SEL_FORCE)/1000.);
 		}
 		else if(sel[3]==4){sel[3]=5;//MAP
 		ANO_DT_Send_PID(5,(float)target_map[1][3]/1000.,(float)target_map[2][3]/1000.,(float)target_map[3][3]/1000.,
@@ -318,9 +318,9 @@ void ANO_DT_Data_Exchange(void)
 //    temp2=	LIMIT(imu_board.flow_module_offset_y,-0.99,0.99);
 //    if(temp2<0)
 //    temp2=-temp2+1;			
-//		ANO_DT_Send_PID(6,imu_board.k_flow_sel,temp1,temp2,
-//											k_sensitivity[0],k_sensitivity[1],k_sensitivity[2],
-//											robot_land.k_f,(float)LENGTH_OF_DRONE/1000.,(float)UART_UP_LOAD_SEL_FORCE/1000.);
+		ANO_DT_Send_PID(6,(float)KEY[2]/1000.,(float)KEY[3]/1000.,(float)YUN_PER_OFF/1000.,
+											0,0,0,
+											0,0,(float)tar_need_to_check_odroid[2]/1000.);
 		f.send_pid1=0;
 		}
 	 }
@@ -525,7 +525,7 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
 				SHOOT_PWM_DEAD0= ( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 		
 				SHOOT_PWM_DEAD1= 				( (vs16)(*(data_buf+16)<<8)|*(data_buf+17) );
-        state_pass	= ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
+        map_dead_cnt	= ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
         UART_UP_LOAD_SEL_FORCE	=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
 		if(f.send_check == 0)
 		{
@@ -556,13 +556,10 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
 	}
 	if(*(data_buf+2)==0X15)								//PID6 for imu set
 	{
-//		imu_board.k_flow_sel  = 0.001*( (vs16)(*(data_buf+4)<<8)|*(data_buf+5) );
+      KEY[2]  =  ((vs16)(*(data_buf+4)<<8)|*(data_buf+5) );//en shoot
 //		int temp1,temp2;
-//		temp1=( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
-//		if(temp1>1000)imu_board.flow_module_offset_x=-(temp1-1000)*0.001;
-//		else
-//		imu_board.flow_module_offset_x=(temp1)*0.001;	
-//		temp2=( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
+			KEY[3]=( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
+  		YUN_PER_OFF=( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
 //		if(temp2>1000)imu_board.flow_module_offset_y=-(temp2-1000)*0.001;
 //		else imu_board.flow_module_offset_y=(temp2)*0.001;
 //		
@@ -573,7 +570,7 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
 //		
 //		robot_land.k_f					 = 0.001*( (vs16)(*(data_buf+17)<<8)|*(data_buf+16) );
 //		LENGTH_OF_DRONE=    ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
-		UART_UP_LOAD_SEL_FORCE=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
+	//	UART_UP_LOAD_SEL_FORCE=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
 		if(f.send_check == 0)
 		{
 			f.send_check = 1;

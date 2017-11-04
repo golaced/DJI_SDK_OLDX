@@ -135,15 +135,16 @@ void Clear_map(void){
 
 int pix_ero=MID_X*0.25;
 float map_correct_step=0.69;
+u16 map_dead_cnt=8;
 void map_builder(void){
 	u8 i;
 	
 	for(i=0;i<6;i++){		
 	if(circle.map[i][0]!='N'&&ABS(circle.map[i][1]-MID_X)<pix_ero&&gps_data.latitude!=0&&gps_data.longitude!=0){
     target_map[i][4]++; 
-		if(target_map[i][4]>10){
+		if(target_map[i][4]>map_dead_cnt){
 		if(target_map[circle.map[i][0]][3]==0){
-		target_map[circle.map[i][0]][3]=1;
+		target_map[circle.map[i][0]][3]=circle.map[i][0];
 		target_map[circle.map[i][0]][0]=gps_data.latitude;
 		target_map[circle.map[i][0]][1]=gps_data.longitude;
 		target_map[circle.map[i][0]][2]=ALT_POS_SONAR2;
@@ -311,7 +312,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		gps_pid_use.kd=gps_pid.kd;
 		}
 	#if USE_M100
-	
+	 
 	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
 		 set_point1=1;
 	 else if(ABS(m100.Rc_pit)<1500&&ABS(m100.Rc_rol)<1500&&ABS(m100.Rc_yaw)<1500)

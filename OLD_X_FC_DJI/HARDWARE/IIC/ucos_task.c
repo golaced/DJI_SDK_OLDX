@@ -17,7 +17,6 @@
 #include "eso.h"
 #include "gps.h"
 #include "m100.h"
-#include "alt_kf.h"
 #include "data_transfer.h"
 //==============================传感器 任务函数==========================
 OS_STK MEMS_TASK_STK[MEMS_STK_SIZE];
@@ -41,7 +40,10 @@ float inner_loop_time;
 float dj_k=0.0018*1.8,dj_k2=0.01015,dj_k_mouse=0.015;
 
 //float k_dj[2][3]={1.6,0.8,3,  3.5,0.5,10};float d_t[2]={3,4.5};
-float k_dj[2][3]={1,1.0,0.85,  1,1,0.85};float d_t[2]={0.45,0.45/2};float dt_flt=0.9;
+float k_dj[2][3]={1,1.0,0.85,  
+                 //1,1,0.85};
+	                 1,1,1};
+float d_t[2]={0.45,0.45/2};float dt_flt=0.9;
 float flt_track[3]={0.75,0.9,0.5};
 float DJ_YAW_OFF=0;
 int Rc_Pwm_off[8]={2,2,2,3};
@@ -56,12 +58,13 @@ float flt_gro_z=0.8;
 float Yaw_Follow_Dead= 25/2;
 #define MISS_RE_SET 3
 #if USE_M100
-float SHOOT_PWM_OFF0=-66,
+float SHOOT_PWM_OFF0=-33,
 #else
 float SHOOT_PWM_OFF0=70,
 #endif
-	SHOOT_PWM_OFF1=6,SHOOT_PWM_DEAD0=80+20,
-									 SHOOT_PWM_DEAD1=60+20;
+	SHOOT_PWM_OFF1=12,
+  SHOOT_PWM_DEAD0=80+20,
+	SHOOT_PWM_DEAD1=60+20;
 #if USE_M100
 int YUN_PER_OFF=50;
 #else
@@ -155,7 +158,7 @@ void inner_task(void *pdata)
 	  else  if(state_v==SU_MAP_TO||state_v==SU_TO_START_POS)
 	 {
 	 k_m100[0]=k_m100_gps[0]*gain_global;
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.328,1,1000)*gain_global;//k_m100_gps[1]; 
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
 	 }
 	 else if(state_v==SU_TO_CHECK_POS)
 	 {

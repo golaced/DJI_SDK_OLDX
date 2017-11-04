@@ -267,7 +267,7 @@ void Flow_set_tar(float set);
 #define TEST_GPS 0
 #define USE_M100 1
 #define USE_MAP 1 //使用MAP信息
-#define NAV_ERO_USE_LINE 1 //使用航向直线误差作为判断
+#define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
 #define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define USE_PAN_800 1
 //云台初始化位置
@@ -306,7 +306,7 @@ extern u8 dji_rst_protect,dji_rst;
 extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss;
 extern u16 dji_miss_cnt;
 extern u16 Rc_Pwm_Out_mine_USE[4]; 
-extern u16 cnt_m100_data_refresh,S_head;
+extern u16 cnt_m100_data_refresh,S_head,map_dead_cnt;
 extern u8 m100_data_refresh;
 extern u8 state_set_point,state_pass,fake_target_force;
 extern float DJ_YAW_OFF;
