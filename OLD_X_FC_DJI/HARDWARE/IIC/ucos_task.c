@@ -173,7 +173,7 @@ void inner_task(void *pdata)
 	 else if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)
 	 {
 	 k_m100[0]=k_m100_scan[0]*gain_global[0];
-	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1.234,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1,1,1000)*gain_global[1];//k_m100_gps[1]; 
 	 	 }
 	  else if(state_v==SD_HOLD2)
 	 {
@@ -820,7 +820,7 @@ void uart_task(void *pdata)
 							SD_LINK_TASK2(SEND_IMU);	
 					#endif
 							}	
-		delay_ms(5);  
+		delay_ms(10);  
 	}
 }	
 

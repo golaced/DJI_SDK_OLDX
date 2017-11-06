@@ -800,7 +800,7 @@ void AUTO_LAND_FLYUP(float T)
 	static u16 fly_cover_cnt;
 	static u8 cnt_first_avoid;
 	static int pan_reg[2];
-	static u16 cnt_state_over_time;
+	static u16 cnt_state_over_time,cnt_state_over_time_map;
 	static u8 miss_state;
 	u16 i,j;
 	time_fly=cnt_back_home*T;
@@ -814,7 +814,7 @@ void AUTO_LAND_FLYUP(float T)
 	switch(state)
 	{//-------------------------------------------------Æð·É
 		case SG_LOW_CHECK://low thr check
-			miss_state=cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
+			cnt_state_over_time_map=miss_state=cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
 		  tar_cnt=0;
 		  for(i=0;i<19;i++)
 		    tar_buf[i]=66;
@@ -915,6 +915,11 @@ void AUTO_LAND_FLYUP(float T)
 						if(cnt[1]++>0.4/T)
 						{state=SU_MAP2;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}}
 					}
+			
+			    if(cnt_state_over_time_map++>STATE_OVER_TIME_MAX[0]/T)
+						{state=SU_MAP2;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt_state_over_time_map=0;mode_change=1;}
+					
+					
 			    #if USE_OVER_TIME_FOR_STATE
 				  //state_over_time
 					 if(cnt_state_over_time++>STATE_OVER_TIME_MAX[0]/T)
@@ -1247,7 +1252,7 @@ void AUTO_LAND_FLYUP(float T)
 					 {state=SD_HOLD;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt_state_over_time=0;mode_change=1;}
 						#endif
 					
-					 if(thr_sel[1]++>30/T){
+					 if(thr_sel[1]++>18/T){
 					 state=SU_TO_CHECK_POS;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 					 }
 					 
@@ -1979,7 +1984,7 @@ mode.en_rth_mine=0;
 				 {
 					
 						tar_point_globle[0]=way_point[0][0]; tar_point_globle[1]=way_point[0][1];
-						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,1);
+						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
 						nav_land[ROLr]=nav_gps[ROLr];
 					#if	NAV_USE_AVOID
 					 if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>125)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
