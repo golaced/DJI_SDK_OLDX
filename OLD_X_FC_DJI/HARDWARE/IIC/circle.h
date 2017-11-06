@@ -14,7 +14,7 @@
  int control[2];
  float control_k;
  float control_k_miss; 
-	float control_yaw;
+	float control_yaw,control_yaw_pix;
  float forward;
  float forward_end_dj_pwm;
   int map[6][4];

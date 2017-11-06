@@ -277,8 +277,8 @@ void ANO_DT_Data_Exchange(void)
 		 ANO_DT_Send_Location(state_v,m100.GPS_STATUS,temp_j,temp_w,0);
 		 #endif
 		}
-		if(f.send_pid1){
-	  state_mine=3;}
+		if(f.send_pid1)
+	  state_mine=3;
 		else
 		state_mine=0;	
 	 break;
@@ -302,7 +302,7 @@ void ANO_DT_Data_Exchange(void)
 	  }
     else if(sel[3]==3){sel[3]=4;//ZHB system
 		ANO_DT_Send_PID(4,(float)(SHOOT_PWM_OFF0+500)/1000.,(float)(SHOOT_PWM_OFF1+500)/1000.,(float)fake_target_force/1000.,
-											(float)gain_global/1000.,(float)pix_ero/1000.,(float)SHOOT_PWM_DEAD0/1000.,
+											(float)gain_global[0]/1000.,(float)pix_ero/1000.,(float)SHOOT_PWM_DEAD0/1000.,
 											(float)SHOOT_PWM_DEAD1/1000.,(float)map_dead_cnt/1000.,(float)(UART_UP_LOAD_SEL_FORCE)/1000.);
 		}
 		else if(sel[3]==4){sel[3]=5;//MAP
@@ -310,16 +310,9 @@ void ANO_DT_Data_Exchange(void)
 											(float)target_map[4][3]/1000.,(float)target_map[5][3]/1000.,(float)target_map[6][3]/1000.,
 											(float)target_map[7][3]/1000.,(float)target_map[8][3]/1000.,(float)target_map[9][3]/1000.);								
 		}
-		else {sel[3]=0;
-		float temp1,temp2;
-//    temp1=	LIMIT(imu_board.flow_module_offset_x,-0.99,0.99);
-//    if(temp1<0)
-//    temp1=-temp1+1;
-//    temp2=	LIMIT(imu_board.flow_module_offset_y,-0.99,0.99);
-//    if(temp2<0)
-//    temp2=-temp2+1;			
+		else {sel[3]=0;		
 		ANO_DT_Send_PID(6,(float)KEY[2]/1000.,(float)KEY[3]/1000.,(float)YUN_PER_OFF/1000.,
-											0,0,0,
+											track.control_yaw_pix,0,0,
 											0,0,(float)tar_need_to_check_odroid[2]/1000.);
 		f.send_pid1=0;
 		}
@@ -520,7 +513,7 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
         SHOOT_PWM_OFF1  = ( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) )-500;
         fake_target_force  = ( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
 			
-				gain_global = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
+				gain_global[0] = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
 				pix_ero=               ( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
 				SHOOT_PWM_DEAD0= ( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 		
@@ -557,14 +550,10 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
 	if(*(data_buf+2)==0X15)								//PID6 for imu set
 	{
       KEY[2]  =  ((vs16)(*(data_buf+4)<<8)|*(data_buf+5) );//en shoot
-//		int temp1,temp2;
 			KEY[3]=( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
   		YUN_PER_OFF=( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
-//		if(temp2>1000)imu_board.flow_module_offset_y=-(temp2-1000)*0.001;
-//		else imu_board.flow_module_offset_y=(temp2)*0.001;
-//		
-//		
-//		k_sensitivity[0] = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
+	
+      track.control_yaw_pix = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
 //		k_sensitivity[1] = 0.001*( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
 //		k_sensitivity[2] = 0.001*( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 //		

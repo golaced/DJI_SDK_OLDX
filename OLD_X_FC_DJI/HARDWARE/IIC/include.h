@@ -301,7 +301,7 @@ extern float k_m100[5];
 extern float k_m100_gps[3];//=  {2.25,2.25,1}; //p r t
 extern float k_m100_scan[3];//= {1,2.25,1};
 extern float k_m100_track[3],k_m100_shoot[3];//={1,1,1};
-extern float k_m100_laser_avoid,k_m100_yaw,gain_global;//=0.5;
+extern float k_m100_laser_avoid,k_m100_yaw,gain_global[2];//=0.5;
 extern u8 dji_rst_protect,dji_rst;
 extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss;
 extern u16 dji_miss_cnt;
@@ -311,7 +311,7 @@ extern u8 m100_data_refresh;
 extern u8 state_set_point,state_pass,fake_target_force;
 extern float DJ_YAW_OFF;
 extern int pix_ero;
-#define SHOOT_USE_YUN 1
+#define SHOOT_USE_YUN 0
 #define DEBUG_IN_ROOM 0
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
 //#define DEBUG_TARGET_AVOID //debug shoot and track 多目标过滤

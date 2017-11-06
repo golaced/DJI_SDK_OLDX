@@ -42,7 +42,7 @@ float dj_k=0.0018*1.8,dj_k2=0.01015,dj_k_mouse=0.015;
 //float k_dj[2][3]={1.6,0.8,3,  3.5,0.5,10};float d_t[2]={3,4.5};
 float k_dj[2][3]={1,1.0,0.85,  
                  //1,1,0.85};
-	                 1,1,1};
+	                 1,1,0.9};
 float d_t[2]={0.45,0.45/2};float dt_flt=0.9;
 float flt_track[3]={0.75,0.9,0.5};
 float DJ_YAW_OFF=0;
@@ -58,11 +58,11 @@ float flt_gro_z=0.8;
 float Yaw_Follow_Dead= 25/2;
 #define MISS_RE_SET 3
 #if USE_M100
-float SHOOT_PWM_OFF0=-33,
+float SHOOT_PWM_OFF0=-44,//-12,//-33,//up- down+
 #else
 float SHOOT_PWM_OFF0=70,
 #endif
-	SHOOT_PWM_OFF1=12,
+	SHOOT_PWM_OFF1=22,//12,  //left- right+
   SHOOT_PWM_DEAD0=80+20,
 	SHOOT_PWM_DEAD1=60+20;
 #if USE_M100
@@ -70,7 +70,7 @@ int YUN_PER_OFF=50;
 #else
 int YUN_PER_OFF=40;
 #endif
-float T_SHOOT_CHECK=0.4;//2;
+float T_SHOOT_CHECK=0.4;//0.4;//2;
 u16 DJ_TEST[3]={1523,1520,1500};
 float set_angle_dj[3];
 float kp_dj[3]={10,50,8},kd_dj[3],i_yaw;
@@ -80,12 +80,12 @@ int flag_yun[2]={-1,1};
 u16 Rc_Pwm_Out_mine_USE[4];
 float k_m100_gps[3]=  {2.26,2.26,0.66}; //p r t
 float k_m100_scan[3]= {2.26,2.26,0.66};
-float k_m100_track[3]={2.26,0.88,0.66};
-float k_m100_shoot[3]={2.26,0.88,0.66};
+float k_m100_track[3]={2.88,0.88,0.66};
+float k_m100_shoot[3]={2.88,0.88,0.66};
 float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
-float gain_global=1;
+float gain_global[2]={1.234,1};
 float u_gain_by_ero(float in,float gain,u8 sel,float dead)
 {
     if(ABS(nav_Data.gps_ero_dis_lpf[sel])>dead)
@@ -146,55 +146,60 @@ void inner_task(void *pdata)
 	
    if(state_v==SU_CHECK_TAR||state_v==SD_TO_HOME)
 	 {
-	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global;//k_m100_gps[0];
-	 k_m100[1]= u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1];	 
+	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global[0];//k_m100_gps[0];
+	 k_m100[1]= u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global[1];//k_m100_gps[1];	 
 	 }
 	 
 	 else  if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global;
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1,1,1000)*gain_global;//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1,1,1000)*gain_global[1];//k_m100_gps[1]; 
 	 }
-	  else  if(state_v==SU_MAP_TO||state_v==SU_TO_START_POS)
+	  else  if(state_v==SU_TO_START_POS)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global;
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 }
+	 	 else  if(state_v==SU_MAP_TO)
+	 {
+	 k_m100[0]=k_m100_gps[0]*gain_global[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.234,1,1000)*gain_global[1];//k_m100_gps[1]; 
 	 }
 	 else if(state_v==SU_TO_CHECK_POS)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global;
-   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global[0];
+   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global[1];//k_m100_gps[1]; 
 	 } 
 	 else if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)
 	 {
-	 k_m100[0]=k_m100_scan[0]*gain_global;
-	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1.618,1,1000)*gain_global;//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_scan[0]*gain_global[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1.234,1,1000)*gain_global[1];//k_m100_gps[1]; 
 	 	 }
 	  else if(state_v==SD_HOLD2)
 	 {
-	 k_m100[0]=k_m100_track[0]*gain_global;
-	 k_m100[1]=k_m100_track[1]*gain_global;	 
+	 k_m100[0]=u_gain_by_ero(k_m100_track[0],1.345,1,1000)*gain_global[0];
+	 k_m100[1]=k_m100_track[1]*gain_global[1];	 
 	 	 }
 	 else if(state_v==SD_SHOOT)
 	 {
-	  k_m100[0]=k_m100_track[0]*gain_global;
+	  k_m100[0]=k_m100_shoot[0]*gain_global[0];
 		#if SHOOT_USE_YUN	 
-		k_m100[1]=k_m100_track[1]*gain_global;
+		k_m100[1]=k_m100_shoot[1]*gain_global[1];
 		#else
 		if((ABS(ultra_ctrl_head.err1)<86)&&ABS(PWM_DJ[1]-PWM_DJ1)<25)	 
-		k_m100[1]=k_m100_shoot[1]*gain_global;
+		k_m100[1]=k_m100_shoot[1]*gain_global[0];
 		else
-		k_m100[1]=k_m100_track[1]*gain_global;
+		k_m100[1]=k_m100_shoot[1]*gain_global[1];
 		#endif	
 	 	 }
 	 else
 	 {
-	 k_m100[0]=1*gain_global;
-	 k_m100[1]=1*gain_global;
+	 k_m100[0]=1*gain_global[0];
+	 k_m100[1]=1*gain_global[1];
 	 }
 	#else
-   k_m100[0]=1*gain_global;
-	 k_m100[1]=1*gain_global
+   k_m100[0]=1*gain_global[0];
+	 k_m100[1]=1*gain_global[1];
 	#endif
 	
 	
@@ -389,7 +394,7 @@ void inner_task(void *pdata)
 		(ABS(ultra_ctrl_head.err1)<86)&&
 	  #endif
 		ABS(PWM_DJ[1]-PWM_DJ1)<100)
-	PWM_DJ[2]=LIMIT(track.control_yaw*my_deathzoom_2(circle.x-160,5)+0,0-100,0+100);
+	PWM_DJ[2]=LIMIT(track.control_yaw_pix*my_deathzoom_2(circle.x-160,5)+0,0-100,0+100);
 	else{
 	if(ABS((int)PWM_DJ[1]-1500)<Yaw_Follow_Dead)
 	{track.dj_fly_line=1;

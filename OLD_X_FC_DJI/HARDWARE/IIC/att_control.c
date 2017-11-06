@@ -770,23 +770,30 @@ float time_fly;
 u8 m100_gps_in=0;//state_v
 #if USE_M100
 #define GPS_ERO 300
-#define GPS_ERO_S 666
+#if NAV_ERO_USE_LINE
+#define GPS_ERO_S 300
+#else
+#define GPS_ERO_S 888
+#endif
 #else
 #define GPS_ERO 450
 #define GPS_ERO_S 450
 #endif
 #define NAV_USE_AVOID 1
-#define USE_OVER_TIME_FOR_STATE 1
+#define SHOOT_DIRECT 1
+#define USE_OVER_TIME_FOR_STATE 0
+#define USE_MISS_SCAN 1
 #define SHOOTING_TIME 8.88
-float STATE_OVER_TIME_MAX[10]={16,12};
-#define FAKE_TAR_NUM 7
-u8 fake_target[FAKE_TAR_NUM]={7,9,4,8,1,3,0};
+float STATE_OVER_TIME_MAX[10]={30,30};
+#define FAKE_TAR_NUM 9
+u8 fake_target[FAKE_TAR_NUM]={8,7,6,5,4,3,2,1,0};
 u8 fake_target_force=0;
 u8 fake_target_flag=0;
 void AUTO_LAND_FLYUP(float T)
 {static u8 state,init,cnt_retry;
  static float sonar_r,bmp_r,bmp_thr;
 	static u8 cnt_circle_check=0;
+	static u8 state_reg,state_last;
 	static u16 thr_sel[3],cnt_miss_track;//跟踪失败
 	static u8 flow_head_flag=0;
   static u32 cnt_back_home,cnt_map_home;
@@ -794,6 +801,7 @@ void AUTO_LAND_FLYUP(float T)
 	static u8 cnt_first_avoid;
 	static int pan_reg[2];
 	static u16 cnt_state_over_time;
+	static u8 miss_state;
 	u16 i,j;
 	time_fly=cnt_back_home*T;
 	  u8 temp_pass=!force_check_pass;
@@ -806,7 +814,7 @@ void AUTO_LAND_FLYUP(float T)
 	switch(state)
 	{//-------------------------------------------------起飞
 		case SG_LOW_CHECK://low thr check
-			cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
+			miss_state=cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
 		  tar_cnt=0;
 		  for(i=0;i<19;i++)
 		    tar_buf[i]=66;
@@ -1066,7 +1074,7 @@ void AUTO_LAND_FLYUP(float T)
 					 tar_need_to_check_odroid[2]=66;
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 					if(mode.en_gps){
-								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
 							{
 							 if(cnt[1]++>0.6/T)
 							 {state=SU_CHECK_TAR;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
@@ -1108,7 +1116,10 @@ void AUTO_LAND_FLYUP(float T)
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15)
 					 {
 					if(cnt[4]++>0.4/T)
-				 {   tar_need_to_check_odroid[2]=tar_need_to_check_odroid[1];
+ 				 {  
+					  #if !MISSION_USE_FAKE_TARGET
+					  tar_need_to_check_odroid[2]=tar_need_to_check_odroid[1];
+					  #endif
 					  #if defined(DEBUG_TARGET_AVOID)
 					  tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
 					  state=SU_TO_CHECK_POS;
@@ -1119,13 +1130,17 @@ void AUTO_LAND_FLYUP(float T)
 					  else
 					  #if USE_MAP
 						if(target_map[tar_need_to_check_odroid[2]][0]!=0&&target_map[tar_need_to_check_odroid[2]][1]!=0)
-						state=SU_MAP_TO;		
+						state=SU_MAP_TO;
+            else		
+            state=SU_TO_START_POS;							
 						#else	
 					  state=SU_TO_START_POS;
 						#endif
 						}
 					  #endif
-					 cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}} 
+					 cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+					 miss_state=1;
+					 }} 
 				 else
 					cnt[4]=0; 
 			   			 }
@@ -1152,9 +1167,12 @@ void AUTO_LAND_FLYUP(float T)
 					  #if USE_MAP
 						if(target_map[tar_need_to_check_odroid[2]][0]!=0&&target_map[tar_need_to_check_odroid[2]][1]!=0)
 						state=SU_MAP_TO;		
+						else
+						state=SU_TO_START_POS;
 						#else	
 					  state=SU_TO_START_POS;
 						#endif
+						miss_state=1;
 						}
 					  #endif
 					  cnt_miss_track=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
@@ -1292,20 +1310,25 @@ void AUTO_LAND_FLYUP(float T)
 					  
 					 if(cnt[1]++>0.4/T){//&&(tar_point_globler[0]!=tar_point_globle[0])&&(tar_point_globler[1]!=tar_point_globle[1])){
 					 state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
-				
+				   if(miss_state==1)miss_state=2;
 					}	else
 						cnt[1]=0;
 			    }
 				    #if USE_OVER_TIME_FOR_STATE
 					 if(cnt_state_over_time++>STATE_OVER_TIME_MAX[1]/T)
-					 {state=SD_HOLD_BACK;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt_state_over_time=0;mode_change=1;}
+					 {state=SD_HOLD_BACK;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt_state_over_time=0;mode_change=1;
+					   if(miss_state==1)miss_state=2;
+					 }
 						#endif
 					 if(thr_sel[1]++>30/T){
 					 state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+						  if(miss_state==1)miss_state=2;
 					 }
 					
 					if(state_pass)
-					{state_pass=0;state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=0;}
+					{state_pass=0;state=SD_HOLD_BACK;m100_gps_in=fly_cover_cnt=0;
+					 if(miss_state==1)miss_state=2;
+					}
 					
 				 if(over_time==1)
 						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
@@ -1438,8 +1461,14 @@ void AUTO_LAND_FLYUP(float T)
               else
 							flag1=0;	
 								//<---------------丢失后策略
+							#if USE_MISS_SCAN
+							if(miss_state==1)//check to right
+							{flag_use=flag1;miss_state=3;}
+							else
 							flag_use=flow_head_flag;
-							flag_use=flag1;
+							#else
+							flag_use=flow_head_flag;
+							#endif
 							if(flag_use)
 							state=SD_HOLD;
 							else 
@@ -1470,13 +1499,20 @@ void AUTO_LAND_FLYUP(float T)
 						ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC)//跟踪到位
 				{
 				  if(cnt[4]++>T_SHOOT_CHECK/T)
-				 {en_shoot=1;thr_sel[2]=cnt[4]=cnt[1]=0;thr_sel[1]++;}
+				 {en_shoot=1;thr_sel[2]=cnt[4]=cnt[1]=0;thr_sel[1]++;
+         #if SHOOT_DIRECT 					 
+				 GPIO_SetBits(GPIOB,GPIO_Pin_8);
+				 #endif
+				 }
 			#if SHOOT_OUT_SEL	 
 				#if defined(DEBUG_TRACK)  
 			  #else 
-				 if(thr_sel[1]++>SHOOTING_TIME/T&&(ABS(ultra_ctrl_head.err1)<88*1.618))
+				 if(thr_sel[1]++>SHOOTING_TIME/T)//&&(ABS(ultra_ctrl_head.err1)<188))
 				{state=SU_TO_CHECK_POS;cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 				tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
+					#if SHOOT_DIRECT 
+					GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+					#endif
 				}
 				#endif
       #endif 				
@@ -1489,7 +1525,11 @@ void AUTO_LAND_FLYUP(float T)
 			 
 			 if(mode.en_track_forward)
 			{    if(cnt_miss_track++>2/0.005)
-							{state=SD_HOLD2;fly_cover_cnt=cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+							{state=SD_HOLD2;fly_cover_cnt=cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+							#if SHOOT_DIRECT 
+							GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+							#endif
+							}
 			}
 			else
 				cnt_miss_track=0;
@@ -1503,17 +1543,36 @@ void AUTO_LAND_FLYUP(float T)
 			#endif	
 				{state=SU_TO_CHECK_POS;cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 				tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
+				#if SHOOT_DIRECT 
+				GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+				#endif
 				}
 			#endif	
 			if((circle.check&&circle.connect)||force_check)
 				cnt_miss_track=0;
-			if(mode.dj_by_hand){state=SD_HOLD2;cnt_shoot=en_shoot=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;} 
+			if(mode.dj_by_hand){state=SD_HOLD2;cnt_shoot=en_shoot=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+			#if SHOOT_DIRECT 
+			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			#endif
+			} 
 			
 			if(over_time==1)
-			{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+			{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+			#if SHOOT_DIRECT 
+			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			#endif
+			}
 			else if(over_time==2)
-			{state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
-			if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt_shoot=en_shoot=cnt[3]=0;}}
+			{state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+			#if SHOOT_DIRECT 
+			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			#endif
+			}
+			if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt_shoot=en_shoot=cnt[3]=0;
+			#if SHOOT_DIRECT 
+			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			#endif
+			}}
 			
 		break;	
 		//-------------------------------------自动降落
@@ -1577,6 +1636,10 @@ void AUTO_LAND_FLYUP(float T)
 		
 	}
 
+	if(state_reg!=state)
+		   state_last=state;
+	state_reg=state;
+	
 #if defined(DEBUG_HOLD_WALL) 
 mode.en_rth_mine=0;
 #elif defined(DEBUG_TRACK) 
@@ -1857,6 +1920,7 @@ mode.en_rth_mine=0;
 					else{
 				  tar_point_globle[0]=way_point[1][0]; tar_point_globle[1]=way_point[1][1];//set
 					}
+					
 					if(fly_cover_cnt++>1.5/T){ fly_cover_cnt=5/T;
 					if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
 						nav_land[PITr]=ultra_ctrl_out_head;
@@ -1870,7 +1934,10 @@ mode.en_rth_mine=0;
 						else	
 						nav_land[PITr]=0;
 					}
-						
+					
+          //nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);//new-----for map WT use GPS nav not laser head control	
+	        if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
+					nav_land[PITr]=ultra_ctrl_out_head;					
 					if((ABS(ultra_ctrl_head.err1)<1000))		
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
 					 
@@ -1912,7 +1979,7 @@ mode.en_rth_mine=0;
 				 {
 					
 						tar_point_globle[0]=way_point[0][0]; tar_point_globle[1]=way_point[0][1];
-						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,80);
+						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,1);
 						nav_land[ROLr]=nav_gps[ROLr];
 					#if	NAV_USE_AVOID
 					 if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>125)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];

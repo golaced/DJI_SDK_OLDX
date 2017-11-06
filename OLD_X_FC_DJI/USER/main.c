@@ -93,6 +93,7 @@ int main(void)
   Uart5_Init(230400L);    //VIDEO_LINK
 //-----------------------Mode &  Flag init--------------------	
 //system
+  track.control_yaw_pix=1.234;//É¨Éä·ù¶È
 #define AUX_SEL 1
 #if AUX_SEL //big
   #if USE_PAN_800

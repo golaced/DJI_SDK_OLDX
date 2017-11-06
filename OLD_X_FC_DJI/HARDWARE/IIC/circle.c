@@ -149,7 +149,7 @@ void map_builder(void){
 		target_map[circle.map[i][0]][1]=gps_data.longitude;
 		target_map[circle.map[i][0]][2]=ALT_POS_SONAR2;
 		}
-		else
+		else if(S_head>20&&ALT_POS_SONAR_HEAD<3)
 		{
 		float flt_use;
 		if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
@@ -388,7 +388,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		if(cnt_delay++>10){cnt_delay=0;	
 		Yaw_set_dji=To_180_degrees(m100.Yaw);	
 		state_set_point=0;
-		if(KEY[3])
+		//if(KEY[3])
 		WRITE_PARM();
 		}
 		}
@@ -444,10 +444,10 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	float k[3],b[3];
 	float jiao[2];
 	line_function_from_arrow(0,0,m100.Yaw,&k[0],&b[0]);
-	line_function90_from_arrow(y[0],y[1],m100.Yaw,&k[1],&b[1]);
+	line_function90_from_arrow(y[1],y[0],m100.Yaw,&k[1],&b[1]);
 	//两直线交点
   cross_point_of_lines(k[0],b[0],k[1],b[1],&jiao[0],&jiao[1]);
-  nav_Data.dis_ero=cal_dis_of_points(jiao[0],jiao[1],y[0],y[1]);
+  nav_Data.dis_ero=cal_dis_of_points(jiao[0],jiao[1],y[1],y[0]);
 	
 //	15075434@qq.com  yang-->15877918559
 	int max_ero0,max_ero1;

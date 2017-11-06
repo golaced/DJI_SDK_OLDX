@@ -32,7 +32,7 @@ _st_height_pid ultra_pid_safe,ultra_pid,ultra_pid_head;
 float exp_height_speed;
 float exp_height=1200,exp_height_check=1466,//
 											exp_height_front=1266,//1250,
-											 exp_height_back=1000,//1050,
+											 exp_height_back=1100,//1050,
 	exp_height_shoot_off;
 float exp_height_speed_safe,exp_height_safe;
 float ultra_speed,ultra_speed_safe;
@@ -397,7 +397,8 @@ else
 
 #define DEAD_NAV_RC 80
 #if USE_M100
-float exp_height_head=1800+300,exp_height_head_scan=2150+400,exp_height_head_shoot=1800+350,exp_height_head_check=4666;
+float exp_height_head=1800+300,exp_height_head_scan=2150+400,exp_height_head_shoot=1800+350,
+	exp_height_head_check=4666,exp_height_map=2500,exp_height_map_to=2222;
 #else
 float exp_height_head=1800,exp_height_head_scan=2150,exp_height_head_shoot=1800;
 #endif
@@ -411,6 +412,10 @@ u16 exp_height_head_use;
 		exp_height_head=exp_height_head_scan;
 	else if(state_v==SU_CHECK_TAR)
 	  exp_height_head=exp_height_head_check;
+	else if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)  
+		exp_height_head=exp_height_map;
+	else if(state_v==SU_MAP_TO)  
+		exp_height_head=exp_height_map_to;
 	else if(state_v==SU_TO_START_POS)
 		exp_height_head=exp_height_head_scan+250;
 	else
@@ -448,7 +453,7 @@ u16 exp_height_head_use;
 	ultra_ctrl_head.pid_out = LIMIT(ultra_ctrl_head.pid_out,-1000,1000);
 		
 	if(ultra_dis_tmp<6666&&S_head>20)		
-	ultra_ctrl_out_head = -LIMIT(ultra_ctrl_head.pid_out*0.4,-100,80);
+	ultra_ctrl_out_head = -LIMIT(ultra_ctrl_head.pid_out*0.4,-120,120);
 	else
 	ultra_ctrl_out_head=0;	
 	ultra_ctrl_head.err_old = ultra_ctrl_head.err;
