@@ -58,19 +58,28 @@ float flt_gro_z=0.8;
 float Yaw_Follow_Dead= 25/2;
 #define MISS_RE_SET 3
 #if USE_M100
-float SHOOT_PWM_OFF0=-44,//-12,//-33,//up- down+
+#if RISK_MODE
+float SHOOT_PWM_OFF0=-44,//up- down+
+#else
+float SHOOT_PWM_OFF0=-44,//up- down+
+#endif
 #else
 float SHOOT_PWM_OFF0=70,
 #endif
-	SHOOT_PWM_OFF1=22,//12,  //left- right+
-  SHOOT_PWM_DEAD0=80+20,
-	SHOOT_PWM_DEAD1=60+20;
+	SHOOT_PWM_OFF1=22;//12,  //left- right+
+#if RISK_MODE
+float SHOOT_PWM_DEAD0=80+20*1;
+float	SHOOT_PWM_DEAD1=60+20*1;
+#else
+float SHOOT_PWM_DEAD0=80+20*1;
+float	SHOOT_PWM_DEAD1=60+20*1;
+#endif
 #if USE_M100
 int YUN_PER_OFF=50;
 #else
 int YUN_PER_OFF=40;
 #endif
-float T_SHOOT_CHECK=0.4;//0.4;//2;
+u8 gimbal_stink=0;
 u16 DJ_TEST[3]={1523,1520,1500};
 float set_angle_dj[3];
 float kp_dj[3]={10,50,8},kd_dj[3],i_yaw;
@@ -86,6 +95,7 @@ float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
 float gain_global[2]={1.234,1};
+float risk_gain=2;
 float u_gain_by_ero(float in,float gain,u8 sel,float dead)
 {
     if(ABS(nav_Data.gps_ero_dis_lpf[sel])>dead)
@@ -100,6 +110,7 @@ void inner_task(void *pdata)
  static u8 dj_fly_line=0;
  static u8 init;	
  static int flag_scan=1;
+ float gain_global_use[2]={1,1},risk_gain_use=1;
  	while(1)
 	{
 	inner_loop_time = Get_Cycle_T(GET_T_INNER); 						//获取内环准确的执行周期
@@ -142,64 +153,84 @@ void inner_task(void *pdata)
 	int temp2=(int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL;
 	int temp3=(int)Rc_Pwm_Inr_mine[RC_YAW]-OFF_RC_YAW;
 	
+	#if RISK_MODE	
+	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
+		||state_v==SU_MAP1||state_v==SU_MAP3||state_v==SU_MAP_TO)&&ABS(nav_Data.gps_ero_dis_lpf[0])>1.618*1000)//x
+	gain_global_use[0]=gain_global[0]*risk_gain;
+	else
+	gain_global_use[0]=gain_global[0];
+	
+	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
+		||state_v==SU_MAP1||state_v==SU_MAP3||state_v==SU_MAP_TO)//y
+		&&ABS(nav_Data.gps_ero_dis_lpf[1])>1.618*1000)
+	gain_global_use[1]=gain_global[1]*risk_gain;
+	else
+	gain_global_use[1]=gain_global[1];
+	
+	risk_gain_use=risk_gain;
+	#else
+	risk_gain_use=1;
+	gain_global_use[0]=gain_global[0];
+	gain_global_use[1]=gain_global[1];
+	#endif
+	
 	#if USE_M100
 	
-   if(state_v==SU_CHECK_TAR||state_v==SD_TO_HOME)
+   if(state_v==SD_TO_HOME)
 	 {
-	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global[0];//k_m100_gps[0];
-	 k_m100[1]= u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global[1];//k_m100_gps[1];	 
+	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global_use[0];
+	 k_m100[1]= u_gain_by_ero(k_m100_gps[1],1.618,1,1000)*gain_global_use[1];	 
 	 }
-	 
 	 else  if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global[0];
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.123,1,1000)*gain_global_use[1]; 
 	 }
 	  else  if(state_v==SU_TO_START_POS)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global[0];
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global_use[1];
 	 }
 	 	 else  if(state_v==SU_MAP_TO)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global[0];
-	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.234,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global_use[1];
 	 }
-	 else if(state_v==SU_TO_CHECK_POS)
+	 else if(state_v==SU_TO_CHECK_POS||state_v==SU_CHECK_TAR)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global[0];
-   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global_use[1];
 	 } 
 	 else if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)
 	 {
-	 k_m100[0]=k_m100_scan[0]*gain_global[0];
-	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1,1,1000)*gain_global[1];//k_m100_gps[1]; 
+	 k_m100[0]=k_m100_scan[0]*gain_global_use[0];
+	 k_m100[1]=u_gain_by_ero(k_m100_scan[1],1.234,1,1000)*gain_global_use[1];
 	 	 }
 	  else if(state_v==SD_HOLD2)
 	 {
-	 k_m100[0]=u_gain_by_ero(k_m100_track[0],1.345,1,1000)*gain_global[0];
-	 k_m100[1]=k_m100_track[1]*gain_global[1];	 
+	 k_m100[0]=u_gain_by_ero(k_m100_track[0],1.345,1,1000)*gain_global_use[0];
+	 k_m100[1]=k_m100_track[1]*gain_global_use[1];	 
 	 	 }
 	 else if(state_v==SD_SHOOT)
 	 {
-	  k_m100[0]=k_m100_shoot[0]*gain_global[0];
+	  k_m100[0]=k_m100_shoot[0]*gain_global_use[0];
 		#if SHOOT_USE_YUN	 
-		k_m100[1]=k_m100_shoot[1]*gain_global[1];
+		k_m100[1]=k_m100_shoot[1]*gain_global_use[1];
 		#else
 		if((ABS(ultra_ctrl_head.err1)<86)&&ABS(PWM_DJ[1]-PWM_DJ1)<25)	 
-		k_m100[1]=k_m100_shoot[1]*gain_global[0];
+		k_m100[1]=k_m100_shoot[1]*gain_global_use[1];
 		else
-		k_m100[1]=k_m100_shoot[1]*gain_global[1];
+		k_m100[1]=k_m100_shoot[1]*gain_global_use[1];
 		#endif	
 	 	 }
 	 else
 	 {
-	 k_m100[0]=1*gain_global[0];
-	 k_m100[1]=1*gain_global[1];
+	 k_m100[0]=gain_global_use[0];
+	 k_m100[1]=gain_global_use[1];
 	 }
 	#else
-   k_m100[0]=1*gain_global[0];
-	 k_m100[1]=1*gain_global[1];
+   k_m100[0]=gain_global_use[0];
+	 k_m100[1]=gain_global_use[1];
 	#endif
 	
 	
@@ -212,8 +243,8 @@ void inner_task(void *pdata)
 		#else
 		if(!mode.dj_by_hand&&ALT_POS_SONAR2>0.3){//注意---开启
 		#endif
-		Rc_Pwm_Out_mine[RC_PITCH]=LIMIT(nav_land[PITr]*k_m100[0]+OFF_RC_PIT,OFF_RC_PIT-MAX_NAV_RC,OFF_RC_PIT+MAX_NAV_RC);//注意遥控偏执
-		Rc_Pwm_Out_mine[RC_ROLL] =LIMIT(nav_land[ROLr]*k_m100[1]+OFF_RC_ROL,OFF_RC_ROL-MAX_NAV_RC,OFF_RC_ROL+MAX_NAV_RC);
+		Rc_Pwm_Out_mine[RC_PITCH]=LIMIT(nav_land[PITr]*k_m100[0]+OFF_RC_PIT,OFF_RC_PIT-MAX_NAV_RC*risk_gain_use,OFF_RC_PIT+MAX_NAV_RC*risk_gain_use);//注意遥控偏执
+		Rc_Pwm_Out_mine[RC_ROLL] =LIMIT(nav_land[ROLr]*k_m100[1]+OFF_RC_ROL,OFF_RC_ROL-MAX_NAV_RC*risk_gain_use,OFF_RC_ROL+MAX_NAV_RC*risk_gain_use);
 		Rc_Pwm_Out_mine[RC_YAW]  =LIMIT(yaw_ctrl_out*k_m100_yaw+OFF_RC_YAW,OFF_RC_YAW-MAX_NAV_RC,OFF_RC_YAW+MAX_NAV_RC);	
 		}
 	}
@@ -253,14 +284,7 @@ void inner_task(void *pdata)
 	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
 	 PWM_DJ[1]=PWM_DJ1-YUN_PER_OFF*mode.en_yun_per_off;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
 	}
-	#if !SHOOT_USE_YUN
-  else if(state_v==SD_SHOOT)
-	{
-	if((ABS(ultra_ctrl_head.err1)<86)&&ABS(PWM_DJ[1]-PWM_DJ1)<88)
-   PWM_DJ[1]=PWM_DJ1;
-	}
-	#endif
-		else if(state_v==SD_HOLD_BACK)
+	else if(state_v==SD_HOLD_BACK)
 			{
 	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
    PWM_DJ[1]=PWM_DJ1+YUN_PER_OFF*mode.en_yun_per_off;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
@@ -320,7 +344,20 @@ void inner_task(void *pdata)
 	else
 	cnt_miss_track=0;
 	
-
+  #if !SHOOT_USE_YUN  //图像对准
+			if(state_v==SD_SHOOT)
+			{
+			if(
+			#if !DEBUG_IN_ROOM	
+			(ABS(ultra_ctrl_head.err1)<168)&&
+			#endif
+				ABS(PWM_DJ[1]-PWM_DJ1)<88)
+			 {gimbal_stink=1;PWM_DJ[1]=PWM_DJ1;}
+			 else 
+				gimbal_stink=0;
+			}else gimbal_stink=0;
+	#endif
+			
 	//PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
 	//PWM_DJ[1]=DJ_TEST[1];//ROLL_DJ
 	
@@ -379,7 +416,7 @@ void inner_task(void *pdata)
 	
 		
 //--------------------Yaw follow  
- #if SHOOT_USE_YUN
+ #if SHOOT_USE_YUN//只用云台
 	if(ABS((int)PWM_DJ[1]-1500)<Yaw_Follow_Dead)
 	{track.dj_fly_line=1;
 	PWM_DJ[2]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-100,0+100);	
@@ -390,19 +427,21 @@ void inner_task(void *pdata)
 	}
 	#else
 	if(
-		#if !DEBUG_IN_ROOM
-		(ABS(ultra_ctrl_head.err1)<86)&&
-	  #endif
-		ABS(PWM_DJ[1]-PWM_DJ1)<100)
-	PWM_DJ[2]=LIMIT(track.control_yaw_pix*my_deathzoom_2(circle.x-160,5)+0,0-100,0+100);
-	else{
-	if(ABS((int)PWM_DJ[1]-1500)<Yaw_Follow_Dead)
-	{track.dj_fly_line=1;
-	PWM_DJ[2]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-100,0+100);	
-		}
-	else{
-	PWM_DJ[2]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-100,0+100);
-		track.dj_fly_line=0;
+//	#if !DEBUG_IN_ROOM
+//	(ABS(ultra_ctrl_head.err1)<168)&&
+//	#endif
+//	ABS(PWM_DJ[1]-PWM_DJ1)<88
+	gimbal_stink
+	)//pix track
+	PWM_DJ[2]=LIMIT(track.control_yaw_pix*my_deathzoom_2(circle.x-160,8)+0,0-100,0+100);
+	else{//yun track
+		if(ABS((int)PWM_DJ[1]-1500)<Yaw_Follow_Dead)
+		{track.dj_fly_line=1;
+		PWM_DJ[2]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-100,0+100);	
+			}
+		else{
+		PWM_DJ[2]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-100,0+100);
+			track.dj_fly_line=0;
 	}}
 	
 	#endif
@@ -508,7 +547,7 @@ void nrf_task(void *pdata)
 		mode.en_gps=1;
 		//force_check_pass=0;
 		mode.hold_use_flow=0;		
-		mode.en_rth_mine=0;//KEY[7];
+		mode.en_rth_mine=1;//KEY[7];
 		//mode.auto_fly_up=1;
 		#endif
 		
@@ -773,8 +812,8 @@ void uart_task(void *pdata)
 											case 5:
 											data_per_uart1(
 											exp_height,ultra_dis_lpf,0,
-											exp_height_head,ALT_POS_SONAR_HEAD*1000,0,  
-											0,0,0,
+											exp_height_head,ALT_POS_SONAR_HEAD*1000,PWM_DJ[2],  
+											Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],
 											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;													
 											default:break;
 											

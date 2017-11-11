@@ -206,18 +206,66 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>238</LineNumber>
+          <LineNumber>534</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134227116</Address>
+          <Address>134237950</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>D:\椋炴帶\OLDX_FC2.0\DJI_OLDX\M100\sample\STM32\OnBoardSDK_STM32\Bsp\BspUsart.cpp</Filename>
+          <Filename>D:\椋炴帶\OLDX_FC2.0\DJI_OLDX\M100\lib\src\DJI_API.cpp</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\osdk_stm32\../Bsp/BspUsart.cpp\238</Expression>
+          <Expression>\\osdk_stm32\../../../../lib/src/DJI_API.cpp\534</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>529</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237926</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>D:\椋炴帶\OLDX_FC2.0\DJI_OLDX\M100\lib\src\DJI_API.cpp</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\osdk_stm32\../../../../lib/src/DJI_API.cpp\529</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>525</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237788</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>D:\椋炴帶\OLDX_FC2.0\DJI_OLDX\M100\lib\src\DJI_API.cpp</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\osdk_stm32\../../../../lib/src/DJI_API.cpp\525</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>511</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237102</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>D:\椋炴帶\OLDX_FC2.0\DJI_OLDX\M100\lib\src\DJI_API.cpp</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\osdk_stm32\../../../../lib/src/DJI_API.cpp\511</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -294,7 +342,7 @@
         <Ww>
           <count>14</count>
           <WinNumber>1</WinNumber>
-          <ItemText>coreApi</ItemText>
+          <ItemText>coreApi,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>15</count>
@@ -305,6 +353,11 @@
           <count>16</count>
           <WinNumber>1</WinNumber>
           <ItemText>\\osdk_stm32\../User/main.cpp\coreApi-&gt;broadcastData,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>17</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>\\osdk_stm32\../User/main.cpp\coreApi-&gt;broadcastData.v,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>

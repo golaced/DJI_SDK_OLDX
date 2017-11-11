@@ -37,7 +37,11 @@ switch (state)
 }
 }
 
-
+void EN_SHOOT_D(u8 on)
+{
+  if(on)GPIO_SetBits(GPIOB,GPIO_Pin_8);
+	else GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+}
 
 void SHOOT_Init()
 {

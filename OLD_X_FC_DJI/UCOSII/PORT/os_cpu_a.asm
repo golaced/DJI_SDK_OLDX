@@ -70,7 +70,7 @@ NVIC_PENDSVSET  	EQU     0x10000000  ; 触发软件中断的值.
 ;********************************************************************************************************
 
 OS_CPU_SR_Save
-    MRS     R0, PRIMASK  	;读取PRIMASK到R0,R0为返回值 
+05    MRS     R0, PRIMASK  	;读取PRIMASK到R0,R0为返回值 
     CPSID   I				;PRIMASK=1,关中断(NMI和硬件FAULT可以响应)
     BX      LR			    ;返回
 

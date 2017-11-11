@@ -1063,7 +1063,7 @@ float ALT_POS_SONAR2,ALT_POS_SONAR3;
 #define SONAR_HIHG_NUM 5
 float sonar_h_arr[SONAR_HIHG_NUM + 1];
 u16 sonar_h_cnt[2];	 float sonar_temp;
-float K_SONAR=2,ALT_VEL_BMP_EKF;
+float K_SONAR=8.888,ALT_VEL_BMP_EKF;
 float POS_SONAR_TEST=0;
 static void altDoPresUpdate(float measuredPres,float dt) {
     float noise;        // measurement variance

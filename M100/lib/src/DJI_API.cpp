@@ -12,7 +12,7 @@
 #include "DJI_API.h"
 #include <string.h>
 #include <stdio.h>
-int activate_s;
+int activate_s=0;
 using namespace DJI;
 using namespace DJI::onboardSDK;
 

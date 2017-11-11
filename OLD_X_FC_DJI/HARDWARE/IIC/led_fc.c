@@ -233,7 +233,7 @@ switch(idle_state)
 	break;
 	
 	case 5:
-	 if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=3)
+	 if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=1)
 				LEDRGB_COLOR(WHITE); 
 		 else if(m100.refresh&&!dji_rc_miss)
 			  LEDRGB_COLOR(BLUE);

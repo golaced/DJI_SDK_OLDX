@@ -249,7 +249,7 @@ void TerminalCommand::terminalCommandHandler(CoreAPI* api, Flight* flight)
 				m100.Roll=api->getBroadcastData().gimbal.roll;
 				m100.Yaw=api->getBroadcastData().gimbal.yaw;
 				m100.Bat=api->getBroadcastData().battery;	
-				m100.GPS_S=api->getBroadcastData().pos.health;	
+				m100.GPS_S=api->getBroadcastData().v.health;	
 				m100.State=api->getBroadcastData().ctrlInfo.flightStatus;	
 				m100.spd[0]=api->getBroadcastData().v.x;
 				m100.spd[1]=api->getBroadcastData().v.y;
@@ -330,7 +330,7 @@ void TerminalCommand::terminalCommandHandler(CoreAPI* api, Flight* flight)
 				m100.Roll=api->getBroadcastData().gimbal.roll;
 				m100.Yaw=api->getBroadcastData().gimbal.yaw;
 				m100.Bat=api->getBroadcastData().battery;	
-				m100.GPS_S=api->getBroadcastData().pos.health;	
+				m100.GPS_S=api->getBroadcastData().v.health;	
 				m100.State=api->getBroadcastData().status;	
 					
 				m100.Rc_p=api->getBroadcastData().rc.pitch;		

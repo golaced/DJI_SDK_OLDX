@@ -264,22 +264,24 @@ void Flow_set_tar(float set);
 #define SD_TO_HOME 26
 
 //--------------------------------------ZHB----------------------------------------
+#include "m100.h"
 #define TEST_GPS 0
 #define USE_M100 1
 #define USE_MAP 1 //使用MAP信息
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
-#define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
-#define USE_PAN_800 1
+#define MISSION_USE_FAKE_TARGET 0//没有屏幕测试
+#define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
+#define DEBUG_IN_ROOM 0//屋内测试
+#define USE_PAN_800 1 //使用飞宇三轴云台
+#define RISK_MODE 0   //冒险模式
 //云台初始化位置
 #if USE_PAN_800
 #define  PWM_DJ0 1500
 #define	 PWM_DJ1 1500
 #else
-#define  PWM_DJ0 1630//1680//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );  俯仰
-#define	 PWM_DJ1 1500//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );  左右
+#define  PWM_DJ0 1630//Pitch
+#define	 PWM_DJ1 1500//Yaw
 #endif
-
-extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitch_DJ,Roll_DJ;;//射击偏差cyds@stepholdings.com 
 
 #if USE_M100
 #define  OFF_RC_PIT 1500
@@ -297,13 +299,12 @@ extern double way_point[2][2];//={39.9626144, 116.3038848,  39.962736, 116.30387
 extern double tar_point_globle[2],tar_point_globler[2],tar_now_gps[2];//={39.962704, 116.3038848};
 extern u8 gps_target_change,en_vrc;
 extern float k_m100[5];
-#include "m100.h"
 extern float k_m100_gps[3];//=  {2.25,2.25,1}; //p r t
 extern float k_m100_scan[3];//= {1,2.25,1};
 extern float k_m100_track[3],k_m100_shoot[3];//={1,1,1};
 extern float k_m100_laser_avoid,k_m100_yaw,gain_global[2];//=0.5;
 extern u8 dji_rst_protect,dji_rst;
-extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss;
+extern u8 DJI_CONNECT, tar_buf[20],dji_rc_miss,gimbal_stink;
 extern u16 dji_miss_cnt;
 extern u16 Rc_Pwm_Out_mine_USE[4]; 
 extern u16 cnt_m100_data_refresh,S_head,map_dead_cnt;
@@ -311,12 +312,11 @@ extern u8 m100_data_refresh;
 extern u8 state_set_point,state_pass,fake_target_force;
 extern float DJ_YAW_OFF;
 extern int pix_ero;
-#define SHOOT_USE_YUN 0
-#define DEBUG_IN_ROOM 0
+extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitch_DJ,Roll_DJ;;//射击偏差cyds@stepholdings.com 
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
 //#define DEBUG_TARGET_AVOID //debug shoot and track 多目标过滤
 //#define DEBUG_MAPPING //debug shoot and track 
-//#define DEBUG_TRACK //debug shoot and track 
+#define DEBUG_TRACK //debug shoot and track 
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL

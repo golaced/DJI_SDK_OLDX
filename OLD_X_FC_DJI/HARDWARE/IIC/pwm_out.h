@@ -11,7 +11,7 @@ void SEL_Init();
 u8 PWM_Out_Init_FOR_CAL(uint16_t hz,uint16_t min,uint16_t max);
 void SHOOT_Init(void);
 void EN_SHOOT(u8 on);
-
+void EN_SHOOT_D(u8 on);
 typedef struct 
 { u16 pwm_tem[3];
 	int flag[3];

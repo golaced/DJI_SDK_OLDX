@@ -736,7 +736,7 @@ u16 AUTO_UP_CUARVE[]={1580,1660,1660,1655,1650,1650,1650,1650,1650};
 u16 AUTO_DOWN_CUARVE[]={1500,1500-50,1500-150,1500-150,1500-200,1500-200};
 u16 AUTO_DOWN_CUARVE1[]={1500-150,1500-150,1500-100,1500-100,1500-80,1500-80};
 #if USE_M100
-float SONAR_SET_HIGHT =0.14;
+float SONAR_SET_HIGHT =0.19599;
 #else
 float SONAR_SET_HIGHT =0.14;
 #endif
@@ -767,7 +767,7 @@ u8 tar_buf[20];
 u8 tar_cnt;
 u8 over_time;
 float time_fly;
-u8 m100_gps_in=0;//state_v
+u8 m100_gps_in=0;
 #if USE_M100
 #define GPS_ERO 300
 #if NAV_ERO_USE_LINE
@@ -779,16 +779,28 @@ u8 m100_gps_in=0;//state_v
 #define GPS_ERO 450
 #define GPS_ERO_S 450
 #endif
-#define NAV_USE_AVOID 1
-#define SHOOT_DIRECT 1
-#define USE_OVER_TIME_FOR_STATE 0
-#define USE_MISS_SCAN 1
-#define SHOOTING_TIME 8.88
-float STATE_OVER_TIME_MAX[10]={30,30};
+#define NAV_USE_AVOID 1//使用前向避障
+#define SHOOT_DIRECT 1//连续射击   
+#define CHECK_NUM_DIS_WITH_LASER 1//识别数字时也使用激光定墙
+#define USE_OVER_TIME_FOR_STATE 0//使用MAP状态超时
+#define CHECK_SCREEN_WHILE_FLYING 0//在巡航状态也检测屏幕
+#define USE_MISS_SCAN 1 //使用丢失左右侧飞
+#define MAX_TARGET 5//最多射击数字
+float dead_pix_check=0.365;//图像对准中心射击触发
+float CHECK_OVER_TIME=60;//最长数字识别时间(s)
+float MAX_TRACK_TIME=26;//对准状态最长时间 (s)
+float MAX_SHOOT_TIME=13;//8.888;//射击状态最长时间(s)
+float SHOOTING_TIME=6;//射击时间(s)
+float SHOOTING_TIME_CHECK=13;//射击状态图像触发次数(num)
+float T_SHOOT_CHECK=0.4;//射击检查时间(s)
+float STATE_OVER_TIME_MAX[10]={30,30};//状态超时时间
+float FORCE_LAND_TIME=8;//强制着陆时间(min)
+float FORCE_HOME_TIME=6;//强制返航时间(min)
 #define FAKE_TAR_NUM 9
 u8 fake_target[FAKE_TAR_NUM]={8,7,6,5,4,3,2,1,0};
 u8 fake_target_force=0;
 u8 fake_target_flag=0;
+u8 shoot_finish_cnt=0;
 void AUTO_LAND_FLYUP(float T)
 {static u8 state,init,cnt_retry;
  static float sonar_r,bmp_r,bmp_thr;
@@ -796,15 +808,16 @@ void AUTO_LAND_FLYUP(float T)
 	static u8 state_reg,state_last;
 	static u16 thr_sel[3],cnt_miss_track;//跟踪失败
 	static u8 flow_head_flag=0;
-  static u32 cnt_back_home,cnt_map_home;
+  static float cnt_back_home,cnt_map_home,cnt_check_over_time,cnt_shoot_over_time;
 	static u16 fly_cover_cnt;
 	static u8 cnt_first_avoid;
 	static int pan_reg[2];
 	static u16 cnt_state_over_time,cnt_state_over_time_map;
 	static u8 miss_state;
+	u8 gimbal_stink_check=1;
 	u16 i,j;
-	time_fly=cnt_back_home*T;
-	  u8 temp_pass=!force_check_pass;
+	time_fly=cnt_back_home;
+	u8 temp_pass=!force_check_pass;
 	if(!init&&ALT_POS_BMP!=0){init=1;
 		baro_ground_high=ALT_POS_BMP;
 	}
@@ -814,7 +827,7 @@ void AUTO_LAND_FLYUP(float T)
 	switch(state)
 	{//-------------------------------------------------起飞
 		case SG_LOW_CHECK://low thr check
-			cnt_state_over_time_map=miss_state=cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
+			cnt_shoot_over_time=cnt_check_over_time=shoot_finish_cnt=cnt_state_over_time_map=miss_state=cnt_state_over_time=fake_target_flag=fly_cover_cnt=cnt_shoot=over_time=cnt_back_home=cnt_map_home=0;tar_need_to_check_odroid[2]=66;
 		  tar_cnt=0;
 		  for(i=0;i<19;i++)
 		    tar_buf[i]=66;
@@ -846,6 +859,22 @@ void AUTO_LAND_FLYUP(float T)
 					}//to hold || land			
 				}
 
+					if(state_pass)
+					{ state_pass=0;
+						#if defined(DEBUG_TRACK)  
+						state=SD_HOLD2;
+						#elif defined(DEBUG_HOLD_HEIGHT) 
+						state=SU_CHECK_TAR;
+						#elif defined(DEBUG_HOLD_WALL) 
+						state=SU_CHECK_TAR;
+						#elif defined(DEBUG_TARGET_AVOID)
+						state=SU_CHECK_TAR;
+						#elif defined(DEBUG_MAPPING)
+						state=SU_MAP2; Clear_map();
+						#else
+						state=SU_TO_CHECK_POS;
+						#endif
+			  	}
 			break;
 		//----------------------------------------------自动起飞
 		case SG_MID_CHECK://middle thr check
@@ -872,7 +901,18 @@ void AUTO_LAND_FLYUP(float T)
 		case SU_UP1://take off
 		if(mode.auto_fly_up==1&&(Rc_Pwm_Inr_mine[RC_THR]>400+1000)&&(Rc_Pwm_Inr_mine[RC_THR]<600+1000)){
 				 if(cnt[0]++>2/T||ALT_POS_SONAR2>exp_height_front*0.85)
-				 {mode_change=1;state=SU_HOLD;thr_sel[1]=thr_sel[0]=cnt[0]=cnt[1]=0;}	 
+				 {mode_change=1;
+				 #if RISK_MODE
+						#if USE_MAP
+						state=SU_MAP1;
+						Clear_map();
+						#else								 
+						state=SU_TO_CHECK_POS;
+						#endif	 
+				 #else 
+				 state=SU_HOLD;
+				 #endif
+				 thr_sel[1]=thr_sel[0]=cnt[0]=cnt[1]=0;}	 
 	   }
 		 else
 		 {mode_change=1;state=SU_HOLD;thr_sel[1]=thr_sel[0]=cnt[0]=cnt[1]=0;} 
@@ -892,7 +932,6 @@ void AUTO_LAND_FLYUP(float T)
 							 state=SU_TO_CHECK_POS;
 							 #endif	 
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
-
 					}
 			   
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
@@ -902,7 +941,7 @@ void AUTO_LAND_FLYUP(float T)
 			tar_need_to_check_odroid[2]=66;
 			if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 					if(mode.en_gps){
-								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
 							{
 							 if(cnt[1]++>0.6/T)
 							 {state=SU_MAP2;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
@@ -1070,8 +1109,10 @@ void AUTO_LAND_FLYUP(float T)
 				 if(over_time==1)
 						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					else if(over_time==2)
-					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+         #if !DEBUG_IN_ROOM						
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 					break; 			
   	//----------------------------------------巡航--------------------------------------------------	 
 		
@@ -1092,7 +1133,18 @@ void AUTO_LAND_FLYUP(float T)
 						if(cnt[1]++>0.4/T)
 						{state=SU_CHECK_TAR;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}}
 					}
-			    
+         #if CHECK_SCREEN_WHILE_FLYING
+         if(((tar_need_to_check_odroid[0]&&tar_need_to_check_odroid[1]!=66&&circle.connect)||force_check_pass)&&
+				ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
+				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15)
+					 {
+					   	if(cnt[4]++>0.4/T)
+ 				         {  
+									 state=SU_CHECK_TAR;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;						 
+								 }
+           }//Add new WT check num while flying
+				 }
+				 #endif 
 					if(state_pass)
 					{state_pass=0;state=SU_CHECK_TAR;}
 					#if defined(DEBUG_TARGET_AVOID)
@@ -1105,7 +1157,9 @@ void AUTO_LAND_FLYUP(float T)
 					else if(over_time==2)
 					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					#endif
+				 #if !DEBUG_IN_ROOM
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break; 
 		case SU_CHECK_TAR://检测目标
 					#if defined(DEBUG_HOLD_WALL) 
@@ -1191,6 +1245,10 @@ void AUTO_LAND_FLYUP(float T)
 				  
 					
 				 #endif
+						
+					if(cnt_check_over_time>CHECK_OVER_TIME){cnt_check_over_time=0;
+          shoot_finish_cnt++;
+				  }
 				  #if defined(DEBUG_HOLD_WALL) 
 					#elif defined(DEBUG_HOLD_HEIGHT) 
 				  #elif defined(DEBUG_TARGET_AVOID)
@@ -1219,21 +1277,23 @@ void AUTO_LAND_FLYUP(float T)
 					#endif
 					#if defined(DEBUG_TARGET_AVOID)
 					#else
-				 if(over_time==1)
+				 if(over_time==1||shoot_finish_cnt>=MAX_TARGET)
 						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					else if(over_time==2)
 					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					#endif
+				 #if !DEBUG_IN_ROOM
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 					break; 		 
 				 
 		case SU_TO_START_POS://巡航到作业起点位置8
 					 
 				 if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 					if(mode.en_gps){
-								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
+								if(ABS(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&ABS(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO_S*1.618&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
 							{
-							 if(cnt[1]++>0.45/T)
+							 if(cnt[1]++>0.4/T)
 							 {state=SD_HOLD;m100_gps_in=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1; gps_target_change=1;
 							 tar_now_gps[0]=tar_point_globle[0];
 							 tar_now_gps[1]=tar_point_globle[1];
@@ -1242,7 +1302,7 @@ void AUTO_LAND_FLYUP(float T)
 							}	else
 								cnt[1]=0;
 							} 
-						else
+						else//not gps
 						{
 						if(cnt[1]++>2.5/T)//默认测飞	
 						{state=SD_HOLD;m100_gps_in=fly_cover_cnt=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;Flow_save_tar_s();}}
@@ -1252,7 +1312,7 @@ void AUTO_LAND_FLYUP(float T)
 					 {state=SD_HOLD;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt_state_over_time=0;mode_change=1;}
 						#endif
 					
-					 if(thr_sel[1]++>18/T){
+					 if(thr_sel[1]++>14.6/T){
 					 state=SU_TO_CHECK_POS;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 					 }
 					 
@@ -1262,8 +1322,10 @@ void AUTO_LAND_FLYUP(float T)
 				 if(over_time==1)
 						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					else if(over_time==2)
-					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+         #if !DEBUG_IN_ROOM						
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break; 		 
 				 
 				 
@@ -1436,22 +1498,36 @@ void AUTO_LAND_FLYUP(float T)
 		
 		cnt_retry=0;
     	if(mode.en_shoot&&ABS(PWM_DJ[1]-PWM_DJ1)<SHOOT_PWM_DEAD1&&ABS(PWM_DJ[0]-(PWM_DJ0+SHOOT_PWM_OFF0))<SHOOT_PWM_DEAD0&&
-				//((int)Rc_Pwm_Inr_mine[RC_THR]>400+1000)&&((int)Rc_Pwm_Inr_mine[RC_THR]<600+1000)&&
 			   #if !DEBUG_IN_ROOM
-			    (ABS(ultra_ctrl_head.err1)<100)&&
+			    (ABS(ultra_ctrl_head.err1)<168)&&
 			   #endif
 					((circle.check &&circle.connect)||force_check)&&
 						ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC)//跟踪到位
-				{//中位开始下降 其他可以控制
+				{
 				 if(1){
 					 if(cnt[4]++>T_SHOOT_CHECK/T)
-				 {state=SD_SHOOT;cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}} 
+				 {state=SD_SHOOT;cnt_shoot_over_time=cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}} 
 				 else
 					cnt[4]=0; 
 			   	}
 			 else
 					cnt[4]=0; 
-			 
+			//WT Track Overtime
+			#if !DEBUG_IN_ROOM
+			if(ABS(ultra_ctrl_head.err1)<168)
+      #endif				
+			   cnt_shoot_over_time+=T;
+			if(cnt_shoot_over_time>MAX_TRACK_TIME)
+				EN_SHOOT_D(1);
+			if(cnt_shoot_over_time>MAX_TRACK_TIME+SHOOTING_TIME*0.6) 
+			{
+			EN_SHOOT_D(0);
+			state=SU_TO_CHECK_POS;
+			shoot_finish_cnt++;	
+			tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
+			cnt_shoot_over_time=cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+			}
+			
 			if(ABS(PWM_DJ[1]-1500)>1.618*DEAD_NAV_RC) 
 			pan_reg[1]=PWM_DJ[1]-1500;
 			 
@@ -1465,7 +1541,7 @@ void AUTO_LAND_FLYUP(float T)
 							flag1=1;
               else
 							flag1=0;	
-								//<---------------丢失后策略
+								//<---------------丢失策略
 							#if USE_MISS_SCAN
 							if(miss_state==1)//check to right
 							{flag_use=flag1;miss_state=3;}
@@ -1479,105 +1555,141 @@ void AUTO_LAND_FLYUP(float T)
 							else 
 							state=SD_HOLD_BACK;	
 							#endif
-							fly_cover_cnt=cnt_miss_track=cnt_shoot=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+							#if SHOOT_DIRECT 
+							EN_SHOOT_D(0);
+							#endif
+							cnt_shoot_over_time=fly_cover_cnt=cnt_miss_track=cnt_shoot=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 			}
 			else
 				cnt_miss_track=0;
 			
 			if((circle.check&&circle.connect)||force_check)
 				cnt_miss_track=0;
-			
+
 			
 			if(over_time==1)
-						{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
-					else if(over_time==2)
-					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
-			if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
-			
+			{			
+			#if SHOOT_DIRECT 
+			EN_SHOOT_D(0);
+			#endif
+			state=SD_TO_HOME;
+			cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+			else if(over_time==2)
+			{
+			#if SHOOT_DIRECT 
+			EN_SHOOT_D(0);
+			#endif
+			state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+			#if !DEBUG_IN_ROOM
+			if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){			
+			#if SHOOT_DIRECT 
+			EN_SHOOT_D(0);
+			#endif
+			mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+			#endif
 		break;
-		 case SD_SHOOT://射击模式
-   #define SHOOT_OUT_SEL 1
+		case SD_SHOOT://射击模式
+		#if SHOOT_USE_YUN
+		gimbal_stink_check=1;
+		#else
+		  if(gimbal_stink){
+				if(ABS(my_deathzoom_2(circle.x-160,8))<160*dead_pix_check)
+				gimbal_stink_check=1;	
+				else
+				gimbal_stink_check=0;
+			}
+			else
+				gimbal_stink_check=1;
+		#endif
 		if(mode.en_shoot&&ABS(PWM_DJ[1]-PWM_DJ1)<SHOOT_PWM_DEAD1&&ABS(PWM_DJ[0]-(PWM_DJ0+SHOOT_PWM_OFF0))<SHOOT_PWM_DEAD0&&
 			(ABS(Pitch)<16&&ABS(Roll)<16)&&
+		  gimbal_stink_check&&
 		  ((circle.check &&circle.connect)||force_check)&&
-				//((int)Rc_Pwm_Inr_mine[RC_THR]>400+1000)&&((int)Rc_Pwm_Inr_mine[RC_THR]<600+1000)&&
 						ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC)//跟踪到位
 				{
-				  if(cnt[4]++>T_SHOOT_CHECK/T)
-				 {en_shoot=1;thr_sel[2]=cnt[4]=cnt[1]=0;thr_sel[1]++;
-         #if SHOOT_DIRECT 					 
-				 GPIO_SetBits(GPIOB,GPIO_Pin_8);
-				 #endif
-				 }
-			#if SHOOT_OUT_SEL	 
-				#if defined(DEBUG_TRACK)  
-			  #else 
-				 if(thr_sel[1]++>SHOOTING_TIME/T)//&&(ABS(ultra_ctrl_head.err1)<188))
-				{state=SU_TO_CHECK_POS;cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
-				tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
-					#if SHOOT_DIRECT 
-					GPIO_ResetBits(GPIOB,GPIO_Pin_8);
-					#endif
-				}
-				#endif
-      #endif 				
-				} 
-					 else
-			 {cnt[0]=0;cnt[4]=0; }
+					if(cnt[4]++>(T_SHOOT_CHECK/2)/T)
+					{
+						en_shoot=1;cnt[4]=cnt[1]=0;thr_sel[1]++;
+						#if SHOOT_DIRECT 					 
+						EN_SHOOT_D(1);
+						#endif
+					}
+
+							if(thr_sel[1]>SHOOTING_TIME_CHECK)
+							{
+								#if defined(DEBUG_TRACK)  
+								#else 	
+									state=SU_TO_CHECK_POS;
+								  shoot_finish_cnt++;		
+								#endif
+								cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;								
+								tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
+								#if SHOOT_DIRECT 
+									EN_SHOOT_D(0);
+								#endif
+							}			
+				}//end if check 
+				else
+			  {cnt[0]=0;cnt[4]=0;}
 			 
 			 if(ABS(PWM_DJ[1]-1500)>1.618*DEAD_NAV_RC) 
-			pan_reg[1]=PWM_DJ[1]-1500;
+			  pan_reg[1]=PWM_DJ[1]-1500;
 			 
 			 if(mode.en_track_forward)
-			{    if(cnt_miss_track++>2/0.005)
+			{    if(cnt_miss_track++>2/0.005)//loss target
 							{state=SD_HOLD2;fly_cover_cnt=cnt_shoot=cnt_miss_track=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 							#if SHOOT_DIRECT 
-							GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+							 EN_SHOOT_D(0);
 							#endif
 							}
 			}
 			else
 				cnt_miss_track=0;
-			
-			#if defined(DEBUG_TRACK)  
-			#else
-			#if SHOOT_OUT_SEL
-			if(thr_sel[1]++>8.8888*2.666*0.8/T)
-			#else
-			if(thr_sel[1]++>8.8888*2.666*0.8/T)
-			#endif	
-				{state=SU_TO_CHECK_POS;cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
+			//shoot over time
+			thr_sel[2]++;
+			if(thr_sel[2]>MAX_SHOOT_TIME/0.005)
+				EN_SHOOT_D(1);
+			if(thr_sel[2]>(MAX_SHOOT_TIME+SHOOTING_TIME*0.6)/0.005)
+				{
+				#if defined(DEBUG_TRACK)  
+			  #else	
+				state=SU_TO_CHECK_POS;
+				shoot_finish_cnt++;	
+				#endif		
+				cnt_shoot=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 				tar_buf[tar_cnt++]=tar_need_to_check_odroid[2];
 				#if SHOOT_DIRECT 
-				GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+				EN_SHOOT_D(0);
 				#endif
 				}
-			#endif	
+			//loss target	
 			if((circle.check&&circle.connect)||force_check)
 				cnt_miss_track=0;
 			if(mode.dj_by_hand){state=SD_HOLD2;cnt_shoot=en_shoot=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 			#if SHOOT_DIRECT 
-			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			EN_SHOOT_D(0);
 			#endif
 			} 
 			
-			if(over_time==1)
+			if(over_time==1||shoot_finish_cnt>=MAX_TARGET)
 			{state=SD_TO_HOME;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 			#if SHOOT_DIRECT 
-			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			EN_SHOOT_D(0);
 			#endif
 			}
 			else if(over_time==2)
 			{state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;
 			#if SHOOT_DIRECT 
-			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			EN_SHOOT_D(0);
 			#endif
 			}
+			#if !DEBUG_IN_ROOM
 			if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt_shoot=en_shoot=cnt[3]=0;
 			#if SHOOT_DIRECT 
-			GPIO_ResetBits(GPIOB,GPIO_Pin_8);
+			EN_SHOOT_D(0);
 			#endif
 			}}
+			#endif
 			
 		break;	
 		//-------------------------------------自动降落
@@ -1601,7 +1713,9 @@ void AUTO_LAND_FLYUP(float T)
 
 				    if(over_time==2)
 					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
+				 #if !DEBUG_IN_ROOM		
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break; 		 
 	
 		case SD_CIRCLE_MID_DOWN://   在圆死区内中速下降
@@ -1629,7 +1743,6 @@ void AUTO_LAND_FLYUP(float T)
 		case SD_SHUT_DOWN://reset
     if((Rc_Pwm_Inr_mine[RC_THR]<200+1000)&&ALT_POS_SONAR2<SONAR_SET_HIGHT+0.3)
 		{state=SG_LOW_CHECK;cnt_retry=0;}
-		
 		break;
 		//------------------------------------SAFE------------------------------------------------
 		case SD_SAFE://safe out
@@ -1638,11 +1751,9 @@ void AUTO_LAND_FLYUP(float T)
 		state=SG_LOW_CHECK;	
 		break;
 		default:{mode_change=1;state=SD_SAFE;}break;
-		
 	}
 
-	if(state_reg!=state)
-		   state_last=state;
+	if(state_reg!=state)state_last=state;
 	state_reg=state;
 	
 #if defined(DEBUG_HOLD_WALL) 
@@ -1655,27 +1766,29 @@ mode.en_rth_mine=0;
 mode.en_rth_mine=0;	
 #endif	
 //超时处理	
+	#if SHOOT_DIRECT 
+	if(state!=SD_SHOOT&&state!=SG_LOW_CHECK)
+			EN_SHOOT_D(0);
+	#endif
+	if(state==SU_CHECK_TAR)
+	cnt_check_over_time+=T;
+	else
+	cnt_check_over_time=0;
 	if(mode.en_rth_mine){
 	if(state!=SG_LOW_CHECK)
-	{cnt_back_home++;cnt_map_home++;}
+	{cnt_back_home+=T;cnt_map_home+=T;}
 	#if USE_MAP
-	if(cnt_map_home>0.66*60/T)//超时降落	
+	if(cnt_map_home>1*60)//超时降落	
 	{
 	  if(state==SU_MAP1||state==SU_MAP2||state==SU_MAP3)
 		{state=SU_TO_CHECK_POS;cnt_map_home=0;}	
 	}
 	#endif
-	#if USE_M100
-	if(cnt_back_home>6.66*60/T)//超时降落	
+	if(cnt_back_home>FORCE_LAND_TIME*60)//超时降落	
 	{over_time=2;}
-	else if(cnt_back_home>3.666*60/T)//超时间返航
-	{over_time=1;}}
-	#else
-	if(cnt_back_home>6.6*60/T)//超时降落	
-	{over_time=2;}
-	else if(cnt_back_home>6*60/T)//超时间返航
-	{over_time=1;}}
-	#endif	
+	else if(cnt_back_home>FORCE_HOME_TIME*60)//超时间返航
+	{over_time=1;}
+	}
 	
 #define DEAD_CIRCLE_CHECK 50
 //circle ——check	
@@ -1688,7 +1801,6 @@ mode.en_rth_mine=0;
 	#else
 	k_m100[4]=1;
 	#endif	  
-		//circle_search();//for test
 //-----------------------NAV_OutPut--------------------
 		switch(state){
 			case SU_TO_CHECK_POS://导航到检查点
@@ -2027,7 +2139,15 @@ mode.en_rth_mine=0;
 						//if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&ultra_ctrl_out_head!=0&&ALT_POS_SONAR_HEAD>1.88)//前向壁障
 						//nav_land[PITr]=ultra_ctrl_out_head;
 						//else	
-						nav_land[PITr]=nav_gps[PITr];
+						//nav_land[PITr]=nav_gps[PITr];
+						#if CHECK_NUM_DIS_WITH_LASER
+						if(S_head<20)
+						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);	
+						else
+						nav_land[PITr]=LIMIT(ultra_ctrl_out_head,-120,100);
+						#else
+						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
+						#endif
 					  //---------------------------wait for test  检查点使用前向壁障
 						#if !NAV_USE_AVOID	
 						nav_land[PITr]=nav_gps[PITr];

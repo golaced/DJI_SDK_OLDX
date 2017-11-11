@@ -149,7 +149,7 @@ void map_builder(void){
 		target_map[circle.map[i][0]][1]=gps_data.longitude;
 		target_map[circle.map[i][0]][2]=ALT_POS_SONAR2;
 		}
-		else if(S_head>20&&ALT_POS_SONAR_HEAD<3)
+		else if(S_head>20&&ALT_POS_SONAR_HEAD<3.666)
 		{
 		float flt_use;
 		if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)

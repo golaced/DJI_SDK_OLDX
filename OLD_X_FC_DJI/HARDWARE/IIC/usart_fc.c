@@ -1780,7 +1780,7 @@ switch(sel){
 	SendBuff4[nrf_uart_cnt++]=mode.cal_rc;
 	SendBuff4[nrf_uart_cnt++]=mode.mems_state;
 	
-	if((m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=3)||1)
+	if((m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=1))
 	SendBuff4[nrf_uart_cnt++]=9;
 	else if(m100_data_refresh&&!dji_rc_miss)
 	SendBuff4[nrf_uart_cnt++]=6;

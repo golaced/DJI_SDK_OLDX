@@ -30,10 +30,10 @@ _st_height_pid ultra_pid_safe,ultra_pid,ultra_pid_head;
 
 #define MAX_HEIGH_ERO 800  //check
 float exp_height_speed;
-float exp_height=1200,exp_height_check=1466,//
+float exp_height=1200,exp_height_check=1366,//1466,//
 											exp_height_front=1266,//1250,
-											 exp_height_back=1100,//1050,
-	exp_height_shoot_off;
+											 exp_height_back=965,//1100,//1050,
+	exp_height_shoot_off=0;
 float exp_height_speed_safe,exp_height_safe;
 float ultra_speed,ultra_speed_safe;
 float ultra_dis_lpf,ultra_dis_lpf_safe;
@@ -45,10 +45,13 @@ float adrc_out;
 void Ultra_PID_Init()
 {//use 
 	#if USE_M100
-	ultra_pid.kp = 0.8;//0.45;//0.45;//1.8;//1.65;//1.5;   WT
+//	#if RISK_MODE
+	ultra_pid.kp = 1.25;
+//	#else
+//	ultra_pid.kp = 0.8;//0.45;//0.45;//1.8;//1.65;//1.5;   WT
+//	#endif
 	ultra_pid.ki = 0.25;//1;//101;//add
-	ultra_pid.kd = 6.666;//4.0;//0;
-	
+	ultra_pid.kd = 6.666/2;//4.0;//0;
 	#else
 	ultra_pid.kp = 0.8;//0.45;//0.45;//1.8;//1.65;//1.5;   WT
 	ultra_pid.ki = 0.25;//1;//101;//add
@@ -353,7 +356,7 @@ if((state_v==SD_HOLD2||state_v==SD_SHOOT)&&!mode.dj_by_hand&&mode.en_hold2_h_off
 	{
 	if(circle.connect&&circle.check)
 	exp_height_shoot_off+=-circle.control_k*LIMIT(my_deathzoom(PWM_DJ[0]-(PWM_DJ0+SHOOT_PWM_OFF0),Pitch_Follow_Dead),-80,80)*1;	
-	exp_height_shoot_off=LIMIT(exp_height_shoot_off,-400,400);	
+	exp_height_shoot_off=LIMIT(exp_height_shoot_off,-400,400+350*RISK_MODE);	
   }
 else
   exp_height_shoot_off=0;	
@@ -397,10 +400,15 @@ else
 
 #define DEAD_NAV_RC 80
 #if USE_M100
-float exp_height_head=1800+300,exp_height_head_scan=2150+400,exp_height_head_shoot=1800+350,
-	exp_height_head_check=4666,exp_height_map=2500,exp_height_map_to=2222;
+	float exp_height_head=1800+300,exp_height_head_scan=2150+400;
+	#if RISK_MODE
+	float exp_height_head_shoot=1900;
+	#else
+	float exp_height_head_shoot=2000;
+	#endif
+	float	exp_height_head_check=4666,exp_height_map=2500,exp_height_map_to=2222;
 #else
-float exp_height_head=1800,exp_height_head_scan=2150,exp_height_head_shoot=1800;
+	float exp_height_head=1800,exp_height_head_scan=2150,exp_height_head_shoot=1800;
 #endif
 void Ultra_Ctrl_Front(float T,float thr)
 {
@@ -410,7 +418,7 @@ u16 exp_height_head_use;
 
   if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)  
 		exp_height_head=exp_height_head_scan;
-	else if(state_v==SU_CHECK_TAR)
+	else if(state_v==SU_CHECK_TAR||state_v==SU_TO_CHECK_POS)
 	  exp_height_head=exp_height_head_check;
 	else if(state_v==SU_MAP1||state_v==SU_MAP2||state_v==SU_MAP3)  
 		exp_height_head=exp_height_map;
@@ -418,8 +426,10 @@ u16 exp_height_head_use;
 		exp_height_head=exp_height_map_to;
 	else if(state_v==SU_TO_START_POS)
 		exp_height_head=exp_height_head_scan+250;
-	else
+	else if(state_v==SD_SHOOT)
 		exp_height_head=exp_height_head_shoot;
+	else
+		exp_height_head=exp_height_head_scan;
 	
 	
 	
