@@ -93,7 +93,11 @@ int main(void)
   Uart5_Init(230400L);    //VIDEO_LINK
 //-----------------------Mode &  Flag init--------------------	
 //system
-  track.control_yaw_pix=1.234/2;//扫射幅度
+  #if RISK_MODE
+  track.control_yaw_pix=1.234*1;//扫射幅度
+  #else
+  track.control_yaw_pix=1.234*1;//扫射幅度
+	#endif
 #define AUX_SEL 1
 #if AUX_SEL //big
   #if USE_PAN_800
@@ -107,7 +111,7 @@ int main(void)
   track.control_k=0.45;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
 	track.control_k_miss=0.45;//云台控制增益2.8;//;
 #endif
-	track.control_yaw  =0.3;//云台对准左右增益
+	track.control_yaw=0.3;//云台对准左右增益
 #if USE_M100
   circle.control_k=-0.12;//45/4;//云台对准上下增益1.325;
 #else

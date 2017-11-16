@@ -788,10 +788,10 @@ u8 m100_gps_in=0;
 #define MAX_TARGET 5//最多射击数字
 float dead_pix_check=0.365;//图像对准中心射击触发
 float CHECK_OVER_TIME=60;//最长数字识别时间(s)
-float MAX_TRACK_TIME=26;//对准状态最长时间 (s)
-float MAX_SHOOT_TIME=13;//8.888;//射击状态最长时间(s)
+float MAX_TRACK_TIME=26*2;//对准状态最长时间 (s)
+float MAX_SHOOT_TIME=13*2;//8.888;//射击状态最长时间(s)
 float SHOOTING_TIME=6;//射击时间(s)
-float SHOOTING_TIME_CHECK=13;//射击状态图像触发次数(num)
+float SHOOTING_TIME_CHECK=17.5;//射击状态图像触发次数(num)
 float T_SHOOT_CHECK=0.4;//射击检查时间(s)
 float STATE_OVER_TIME_MAX[10]={30,30};//状态超时时间
 float FORCE_LAND_TIME=8;//强制着陆时间(min)
@@ -1242,8 +1242,7 @@ void AUTO_LAND_FLYUP(float T)
 						}
 					  } 
 				  	}
-				  
-					
+
 				 #endif
 						
 					if(cnt_check_over_time>CHECK_OVER_TIME){cnt_check_over_time=0;
@@ -1607,7 +1606,7 @@ void AUTO_LAND_FLYUP(float T)
 		  ((circle.check &&circle.connect)||force_check)&&
 						ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC)//跟踪到位
 				{
-					if(cnt[4]++>(T_SHOOT_CHECK/2)/T)
+					if(cnt[4]++>(T_SHOOT_CHECK)/T)
 					{
 						en_shoot=1;cnt[4]=cnt[1]=0;thr_sel[1]++;
 						#if SHOOT_DIRECT 					 
@@ -1767,8 +1766,10 @@ mode.en_rth_mine=0;
 #endif	
 //超时处理	
 	#if SHOOT_DIRECT 
-	if(state!=SD_SHOOT&&state!=SG_LOW_CHECK)
-			EN_SHOOT_D(0);
+	if(state==SD_SHOOT||state==SG_LOW_CHECK||state==SD_HOLD2)
+			;
+	else
+	    EN_SHOOT_D(0);
 	#endif
 	if(state==SU_CHECK_TAR)
 	cnt_check_over_time+=T;
@@ -2141,16 +2142,16 @@ mode.en_rth_mine=0;
 						//else	
 						//nav_land[PITr]=nav_gps[PITr];
 						#if CHECK_NUM_DIS_WITH_LASER
-						if(S_head<20)
-						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);	
-						else
-						nav_land[PITr]=LIMIT(ultra_ctrl_out_head,-120,100);
+							if(S_head<20)
+							nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);	
+							else
+							nav_land[PITr]=LIMIT(ultra_ctrl_out_head,-120,100);
 						#else
-						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
+							nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
 						#endif
 					  //---------------------------wait for test  检查点使用前向壁障
 						#if !NAV_USE_AVOID	
-						nav_land[PITr]=nav_gps[PITr];
+							nav_land[PITr]=nav_gps[PITr];
 						#endif
 						nav_land[ROLr]=nav_gps[ROLr];
 					#endif	

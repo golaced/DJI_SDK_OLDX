@@ -356,7 +356,7 @@ if((state_v==SD_HOLD2||state_v==SD_SHOOT)&&!mode.dj_by_hand&&mode.en_hold2_h_off
 	{
 	if(circle.connect&&circle.check)
 	exp_height_shoot_off+=-circle.control_k*LIMIT(my_deathzoom(PWM_DJ[0]-(PWM_DJ0+SHOOT_PWM_OFF0),Pitch_Follow_Dead),-80,80)*1;	
-	exp_height_shoot_off=LIMIT(exp_height_shoot_off,-400,400+350*RISK_MODE);	
+	exp_height_shoot_off=LIMIT(exp_height_shoot_off,-400-168*0,400+100*1);	
   }
 else
   exp_height_shoot_off=0;	
@@ -402,7 +402,7 @@ else
 #if USE_M100
 	float exp_height_head=1800+300,exp_height_head_scan=2150+400;
 	#if RISK_MODE
-	float exp_height_head_shoot=1900;
+	float exp_height_head_shoot=1800;
 	#else
 	float exp_height_head_shoot=2000;
 	#endif

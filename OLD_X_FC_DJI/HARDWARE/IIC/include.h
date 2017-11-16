@@ -273,7 +273,7 @@ void Flow_set_tar(float set);
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
 #define DEBUG_IN_ROOM 0//屋内测试
 #define USE_PAN_800 1 //使用飞宇三轴云台
-#define RISK_MODE 0   //冒险模式
+#define RISK_MODE 1   //冒险模式
 //云台初始化位置
 #if USE_PAN_800
 #define  PWM_DJ0 1500
@@ -316,7 +316,7 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //-------------DEBUG_MODE_SEL------Warning!:Only can choose one mode---------
 //#define DEBUG_TARGET_AVOID //debug shoot and track 多目标过滤
 //#define DEBUG_MAPPING //debug shoot and track 
-#define DEBUG_TRACK //debug shoot and track 
+//#define DEBUG_TRACK //debug shoot and track 
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL

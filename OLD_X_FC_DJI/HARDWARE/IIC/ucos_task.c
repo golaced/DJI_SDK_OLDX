@@ -59,9 +59,9 @@ float Yaw_Follow_Dead= 25/2;
 #define MISS_RE_SET 3
 #if USE_M100
 #if RISK_MODE
-float SHOOT_PWM_OFF0=-44,//up- down+
+float SHOOT_PWM_OFF0=-44,//44,//up- down+
 #else
-float SHOOT_PWM_OFF0=-44,//up- down+
+float SHOOT_PWM_OFF0=-44,//44,//up- down+
 #endif
 #else
 float SHOOT_PWM_OFF0=70,
@@ -80,7 +80,7 @@ int YUN_PER_OFF=50;
 int YUN_PER_OFF=40;
 #endif
 u8 gimbal_stink=0;
-u16 DJ_TEST[3]={1523,1520,1500};
+u16 DJ_TEST[3]={800,1520,1500};
 float set_angle_dj[3];
 float kp_dj[3]={10,50,8},kd_dj[3],i_yaw;
 float k_scan=0.25;//0.25;
@@ -95,7 +95,7 @@ float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
 float gain_global[2]={1.234,1};
-float risk_gain=2;
+float risk_gain=2.68;
 float u_gain_by_ero(float in,float gain,u8 sel,float dead)
 {
     if(ABS(nav_Data.gps_ero_dis_lpf[sel])>dead)
@@ -155,19 +155,20 @@ void inner_task(void *pdata)
 	
 	#if RISK_MODE	
 	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
-		||state_v==SU_MAP1||state_v==SU_MAP3||state_v==SU_MAP_TO)&&ABS(nav_Data.gps_ero_dis_lpf[0])>1.618*1000)//x
+		||state_v==SU_MAP1||state_v==SU_MAP_TO)
+	&&ABS(nav_Data.gps_ero_dis_lpf[0])>1.618*1000)//x
 	gain_global_use[0]=gain_global[0]*risk_gain;
 	else
 	gain_global_use[0]=gain_global[0];
 	
 	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
-		||state_v==SU_MAP1||state_v==SU_MAP3||state_v==SU_MAP_TO)//y
+		||state_v==SU_MAP1||state_v==SU_MAP_TO)//y
 		&&ABS(nav_Data.gps_ero_dis_lpf[1])>1.618*1000)
-	gain_global_use[1]=gain_global[1]*risk_gain;
+	{gain_global_use[1]=gain_global[1]*risk_gain;risk_gain_use=risk_gain;}
 	else
-	gain_global_use[1]=gain_global[1];
+	{gain_global_use[1]=gain_global[1];risk_gain_use=1;}
 	
-	risk_gain_use=risk_gain;
+	if(risk_gain_use<0.5)risk_gain_use=1;
 	#else
 	risk_gain_use=1;
 	gain_global_use[0]=gain_global[0];
@@ -358,7 +359,7 @@ void inner_task(void *pdata)
 			}else gimbal_stink=0;
 	#endif
 			
-	//PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
+	PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
 	//PWM_DJ[1]=DJ_TEST[1];//ROLL_DJ
 	
 	/*duoji*/
