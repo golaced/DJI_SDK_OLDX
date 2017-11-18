@@ -26,14 +26,30 @@ _st_height_pid_v ultra_ctrl,ultra_ctrl_safe,ultra_ctrl_head;
 
 _st_height_pid wz_speed_pid,wz_speed_pid_safe;
 _st_height_pid ultra_pid_safe,ultra_pid,ultra_pid_head;
- 
-
+#define high_data_sel 0//高度数据选择0-> bmp from m100
+#define OFF_HEIGHT_ALL 3500
 #define MAX_HEIGH_ERO 800  //check
 float exp_height_speed;
-float exp_height=1200,exp_height_check=1366,//1466,//
-											exp_height_front=1266,//1250,
-											 exp_height_back=965,//1100,//1050,
+float exp_height=1200+OFF_HEIGHT_ALL,exp_height_check=1366+OFF_HEIGHT_ALL,//1466,//
+											exp_height_front=1266+OFF_HEIGHT_ALL,//1250,
+											 exp_height_back=965+OFF_HEIGHT_ALL,//1100,//1050,
+                       exp_height_home=4000,
 	exp_height_shoot_off=0;
+
+#define OFF_HEIGHT_ALL_FRONE 0
+#define DEAD_NAV_RC 80
+#if USE_M100
+	float exp_height_head=1800+300+OFF_HEIGHT_ALL_FRONE,exp_height_head_scan=2150+400+OFF_HEIGHT_ALL_FRONE;
+	#if RISK_MODE
+	float exp_height_head_shoot=1800+OFF_HEIGHT_ALL_FRONE;
+	#else
+	float exp_height_head_shoot=2000+OFF_HEIGHT_ALL_FRONE;
+	#endif
+	float	exp_height_head_check=4666+OFF_HEIGHT_ALL_FRONE,exp_height_map=2500+OFF_HEIGHT_ALL_FRONE,exp_height_map_to=2222+OFF_HEIGHT_ALL_FRONE;
+#else
+	float exp_height_head=1800+OFF_HEIGHT_ALL_FRONE,exp_height_head_scan=2150+OFF_HEIGHT_ALL_FRONE,exp_height_head_shoot=1800+OFF_HEIGHT_ALL_FRONE;
+#endif
+
 float exp_height_speed_safe,exp_height_safe;
 float ultra_speed,ultra_speed_safe;
 float ultra_dis_lpf,ultra_dis_lpf_safe;
@@ -45,11 +61,7 @@ float adrc_out;
 void Ultra_PID_Init()
 {//use 
 	#if USE_M100
-//	#if RISK_MODE
 	ultra_pid.kp = 1.25;
-//	#else
-//	ultra_pid.kp = 0.8;//0.45;//0.45;//1.8;//1.65;//1.5;   WT
-//	#endif
 	ultra_pid.ki = 0.25;//1;//101;//add
 	ultra_pid.kd = 6.666/2;//4.0;//0;
 	#else
@@ -66,22 +78,6 @@ void Ultra_PID_Init()
 	ultra_pid_head.ki = 0.02;//0.450;//1;//101;//add
 	ultra_pid_head.kd = 8;//2.5;//0;
 	#endif
-	//
-  ultra_pid_safe.kp = 50.0;//1.8;//1.65;//1.5;
-	ultra_pid_safe.ki = 0.0;//1;//add
-	ultra_pid_safe.kd = 0;
-}
-
-  
-void WZ_Speed_PID_Init()
-{//use
-	wz_speed_pid.kp = 0.4;//0.5;//0.3; 
-	wz_speed_pid.ki = 0.5; 
-	wz_speed_pid.kd = 1.5; 
-	//
-	wz_speed_pid_safe.kp = 120.4;//0.5;//0.3; 
-	wz_speed_pid_safe.ki = 45.5; 
-	wz_speed_pid_safe.kd = 1.0; 
 }
 
 #define BARO_SPEED_NUM 10
@@ -153,23 +149,6 @@ void Height_Ctrl(float T,float thr)
 			if(hs_ctrl_cnt == 0)
 			{  //----------------------mode switch----------------------
 				in_timer_high=Get_Cycle_T(GET_T_HIGH_CONTROL_I);
-//				if(height_mode_reg==1&&height_ctrl_mode_use==2)//SONAR<-BMP
-//				{exp_height=ultra_dis_lpf=ALT_POS_SONAR*1000;}
-//				else if(height_mode_reg==2&&height_ctrl_mode_use==1)//SONAR->BMP
-//				{exp_height=ultra_dis_lpf=ALT_POS_BMP*1000;}
-//				 height_mode_reg=height_ctrl_mode_use;
-				//---------------------safe height--------------------------------
-//				static u8 safe_mode_reg;
-//				 if(safe_mode_reg==0&&mode.height_safe==1)//SONAR->BMP
-//				{exp_height_safe=ultra_dis_lpf_safe=ALT_POS_BMP*1000;}
-//				else if(safe_mode_reg==1&&mode.height_safe==0)
-//				{
-//				if(height_ctrl_mode_use==2)//SONAR<-BMP
-//				{exp_height=ultra_dis_lpf=ALT_POS_SONAR*1000;}
-//				else if(height_ctrl_mode_use==1)//SONAR->BMP
-//				{exp_height=ultra_dis_lpf=ALT_POS_BMP*1000;}
-//				
-//				}safe_mode_reg=mode.height_safe;
 //				//heigh thr test
 				static u8 state_thr,cnt_down;
 				static float thr_reg;
@@ -208,24 +187,8 @@ void Height_Ctrl(float T,float thr)
 				}
 				else
 				{thr_use=thr;state_thr=0;thr_reg=500;}
-				 //--------------------------------------------------
-					//	adrc_out=ADRC( exp_height,ultra_dis_lpf, adrc_out,0.02,500)  ;          // v是控制系统的输入，y是控制系统的输出，反馈给ESO，u是ADRC的输出控制量
-						
-//				 applyMultirotorAltHold(thr_use,0.02);
+
 				 exp_spd_zv=EXP_Z_SPEED;
-//				 if(KEY[6])
-//					 height_speed_ctrl(in_timer_high,thr_use,0.4*ultra_ctrl_out,ultra_speed);	
-//				 else
-						{if(EXP_Z_SPEED!=0){
-				    	height_speed_ctrl(in_timer_high,thr_use,( EXP_Z_SPEED ),ultra_speed);//baro_alt_speed *10);///
-						//	height_speed_ctrl_Safe(0.02f,thr,EXP_Z_SPEED,ultra_speed_safe); 
-						}
-							else{
-							height_speed_ctrl(in_timer_high,thr_use,0.4*ultra_ctrl_out,ultra_speed);	
-						//	height_speed_ctrl_Safe(0.02f,thr,0.4*ultra_ctrl_out_safe,ultra_speed_safe);
-							}
-						}
-					
 			}//---end of speed control
 			static u8 cnt_100ms;
 			if( cnt_100ms++>=cnt_height )//wt
@@ -265,78 +228,6 @@ float p1=0.4,p2=0.1;//0.35;//0.3;//WT
 u8 speed_ctrl_sel=0;
 float wz_speed,wz_speed_old,wz_acc_mms2;
 float height_thrv;
-void height_speed_ctrl(float T,float thr,float exp_z_speed,float h_speed)
-{
-static float thr_lpf;
-float height_thr;
-static float lpf_tmp,hc_speed_i,hc_speed_i_2,wz_speed_0,wz_speed_1,wz_speed_2,hc_acc_i;
-	
-	if(thr<100)wz_speed_pid_v.err_i=0;
-	height_thr = LIMIT( ALT_HOLD_THR_RANGE_SCALE * thr , 0, HOLD_THR );
-	thr_lpf += ( 1 / ( 1 + 1 / ( 2.0f *3.14f *T ) ) ) *( height_thr - thr_lpf );
-switch(speed_ctrl_sel){
-	case 0:	
-//=================================================
-	wz_acc_mms2 = (wz_acc/4096.0f) *9800 + hc_acc_i;//9800 *T;
-	wz_speed_0 += my_deathzoom( (wz_acc_mms2 ) ,50) *T;
-	wz_speed_0 = 0.99	*wz_speed_0 + 0.01*h_speed;
-	hc_acc_i += p1 *T *(h_speed - wz_speed);
-	hc_acc_i = LIMIT( hc_acc_i, -500, 500 );	
-	wz_speed_0 += ( 1 / ( 1 + 1 / ( p2 *3.14f *T ) ) ) *( h_speed - wz_speed_0  ) ;
-	wz_speed=wz_speed_0 + hc_acc_i;
-	if( ABS( wz_speed ) < 50 )
-	{
-		wz_speed = 0;
-	}
-	break;
-	case 1:
-//=================================================	
-	
-	wz_acc_mms2 = (wz_acc/4096.0f) *9800 ;//9800 *T;
-	wz_speed_0 += my_deathzoom( wz_acc_mms2 ,100) *T;
-	
-	hc_speed_i += 0.4f *T *( h_speed - wz_speed_1 );
-	hc_speed_i = LIMIT( hc_speed_i, -1500, 1500 );	
-	
-	wz_speed_0 += ( 1 / ( 1 + 1 / ( 0.4f *3.14f *T ) ) ) *( h_speed - wz_speed_0  ) ;
-	wz_speed_1 = wz_speed_0 + hc_speed_i;
-	
-	if( ABS( wz_speed_1 ) < 50 )
-	{
-		wz_speed_1 = 0;
-	}
-	
-	wz_speed_2 += my_deathzoom( wz_acc_mms2 ,100) *T;
-	
-
-		lpf_tmp += 0.4f *T *( wz_speed_1 - wz_speed ); 
-		lpf_tmp = LIMIT( lpf_tmp, -1500, 1500 ); 
-
-	hc_speed_i_2 += 0.01f *T *( wz_speed_1 - wz_speed_2 ); 
-	hc_speed_i_2 = LIMIT( hc_speed_i_2, -500, 500 );	
-	
-	wz_speed_2 += ( 1 / ( 1 + 1 / ( 0.1f *3.14f *T ) ) ) *( wz_speed_1 - wz_speed_2 + hc_speed_i_2 ) ;//*(baro_speed - wz_speed);
-	wz_speed = wz_speed_2 + lpf_tmp;
-	break;
-}
-//===============================	
- //	if(KEY[6])
-		 wz_speed=my_deathzoom_2( (h_speed) ,50);
-  
-	//--------------------------------------------------------------------------------
-	wz_speed_pid_v.err = wz_speed_pid.kp *( exp_z_speed - wz_speed );
-	//wz_speed_pid_v.err_d = 0.002f/T *10*wz_speed_pid.kd * (-wz_acc_mms2) *T;//(wz_speed_pid_v_safe.err - wz_speed_pid_v_safe.err_old);
-	wz_speed_pid_v.err_d = wz_speed_pid.kd * (-wz_acc_mms2) *T;
-	wz_speed_pid_v.err_i += wz_speed_pid.ki *( exp_z_speed - h_speed ) *T;//*wz_speed_pid.kp 
-	wz_speed_pid_v.err_i = LIMIT(wz_speed_pid_v.err_i,-Thr_Weight *200,Thr_Weight *200);//-100~100 //(WT)
-//	if(KEY[5])
-//	wz_speed_pid_v.pid_out = thr_lpf + Thr_Weight *LIMIT(( wz_speed_pid.kp*0.0 *LIMIT(exp_z_speed,-300,300)+wz_speed_pid_v.err + wz_speed_pid_v.err_d + wz_speed_pid_v.err_i),-400,400);	
-//	else
-	wz_speed_pid_v.pid_out = thr_lpf + Thr_Weight *LIMIT(( LIMIT(wz_speed_pid.kp *exp_z_speed,-300,300)+wz_speed_pid_v.err + wz_speed_pid_v.err_d + wz_speed_pid_v.err_i),-400,400);
-	wz_speed_pid_v.err_old = wz_speed_pid_v.err; 
-	wz_speed_old=wz_speed;
-
-}
 
 u8 baro_ctrl_start;
 float baro_height,baro_height_old;
@@ -360,15 +251,24 @@ if((state_v==SD_HOLD2||state_v==SD_SHOOT)&&!mode.dj_by_hand&&mode.en_hold2_h_off
   }
 else
   exp_height_shoot_off=0;	
-	
+	static float off_m100;
+
 	//模式转换初始化
 	if(mode_change){mode_change=0;
 	//exp_height=ALT_POS_SONAR2*1000;
 	Flow_reset_pos();
 	}	
 	
-	//exp_height=1000; 
-	ultra_dis_tmp=  ALT_POS_SONAR2*1000;//ultra_distance;
+  static float sonar_ground;
+	if(state_v==SG_LOW_CHECK)
+	{off_m100=m100.H;
+	sonar_ground=ALT_POS_SONAR2;
+	}
+	
+	if(high_data_sel||m100.refresh==0)
+	ultra_dis_tmp=  ALT_POS_SONAR2*1000;
+	else
+	ultra_dis_tmp=  LIMIT(m100.H-off_m100+sonar_ground,0,20)*1000;	
 		
 
 	ultra_dis_lpf=  ultra_dis_tmp;
@@ -383,13 +283,7 @@ else
 
 	ultra_ctrl.err_d = ultra_pid.kd *( 0.0f *(-(ALT_VEL_BMP_EKF*1000)*T) + 1.0f *(ultra_ctrl.err - ultra_ctrl.err_old) );
 	
-	if(mode.en_eso_h_in&&!mode.height_safe){
-	HIGH_CONTROL_SPD_ESO(&eso_att_inner_c[THRr],(exp_height),(ultra_dis_lpf),eso_att_inner_c[THRr].u,T,1000);
-	ultra_ctrl.pid_out = eso_att_inner_c[THRr].u  + ultra_ctrl.err_d;	 
-	}
-	else{
 	ultra_ctrl.pid_out = ultra_ctrl.err + ultra_ctrl.err_i + ultra_ctrl.err_d;
-   }
 
 	ultra_ctrl.pid_out = LIMIT(ultra_ctrl.pid_out,-1000,1000);
 		
@@ -398,18 +292,6 @@ else
 	ultra_ctrl.err_old = ultra_ctrl.err;
 }
 
-#define DEAD_NAV_RC 80
-#if USE_M100
-	float exp_height_head=1800+300,exp_height_head_scan=2150+400;
-	#if RISK_MODE
-	float exp_height_head_shoot=1800;
-	#else
-	float exp_height_head_shoot=2000;
-	#endif
-	float	exp_height_head_check=4666,exp_height_map=2500,exp_height_map_to=2222;
-#else
-	float exp_height_head=1800,exp_height_head_scan=2150,exp_height_head_shoot=1800;
-#endif
 void Ultra_Ctrl_Front(float T,float thr)
 {
 float ultra_sp_tmp,ultra_dis_tmp;	

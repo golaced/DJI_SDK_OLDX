@@ -229,7 +229,7 @@ void ANO_DT_Data_Exchange(void)
 												VEL_UKF_X*100,VEL_UKF_Y*100,ALT_VEL_BMP_UKF_OLDX*100,
 												ALT_POS_SONAR2*100,baro.h_flt*100);
 			#else			
-			ANO_DT_Send_Senser2(m100.H*100,ALT_POS_SONAR2*100);//原始数据
+			ANO_DT_Send_Senser2(m100.H*100,ultra_dis_lpf/10);//原始数据
 			#endif	
 			}else if(sel[2]==1){sel[2]=2;
 			#if USE_HT_GROUND  

@@ -15,113 +15,6 @@ float nav_circle[2],nav_circle_last[2];
 
 
 */
-float circle_check=0.01;
-float circle_lfp=1;
-float circle_use[2];
-void circle_control(float T)
-{static u8 state;
- u8 i;
- static int circle_reg[2];
- float p,d,intit,rate_error[2],derivative[2];
- static float last_error[2],last_derivative[2];
- float  distance_use;
- static u16 cnt[3];	
- float out[2];
-//state	
-	switch(state){
-		case 0:if(circle.check&&circle.connect)
-			       cnt[0]++;
-		       else
-						 cnt[0]=0;
-		       if(cnt[0]>circle_check/T)
-					 {state=1;cnt[0]=0;}
-		  break;
-		case 1:
-			     if(!circle.check||!circle.connect)
-						 state=0;
-					 
-		      break;
-		default:state=0;break;
-	}
-//output	
-	switch(state){
-		case 0:circle_use[0]=MID_X;circle_use[1]=MID_Y;break;
-		case 1:circle_use[0]=circle.x;circle_use[1]=circle.y;break;
-		default:circle_use[0]=MID_X;circle_use[1]=MID_Y;break;
-	}
-	circle.x_flp=circle.x;
-	circle.y_flp=circle.y;
-	 //if(circle.check&&circle.connect){
-	 circle_use[0]=circle.x_flp;circle_use[1]=circle.y_flp; //}
-//	 else{
-//	 circle_use[0]=MID_X;circle_use[1]=MID_Y;}
-//	if(ALT_POS_SONAR2<0.15)
-//		 distance_use=0.8;
-//	else
-		distance_use=ALT_POS_SONAR2;
-		//circle_use[0]=circle.x_flp-160;
-	   circle_use[0]-=MID_X;
-		//circle_use[1]=circle.y_flp-128;
-	   circle_use[1]-=MID_Y;
-		rate_error[0]=circle_use[0]*distance_use;
-		rate_error[1]=circle_use[1]*distance_use;
-	static float integrator_circle[2];
- if(pid.circle.in.i==0)
- {
- integrator_circle[0]=integrator_circle[1]=0;
- }
-	 for(i=0;i<=1;i++){
-			p = rate_error[i]*pid.circle.in.p;
-			derivative[i] = (rate_error[i] - last_error[i]) ;/// DT;
-			derivative[i]=0.3* derivative[i]+ 0.7*last_derivative[i];
-			// update state
-			last_error[i] = rate_error[i] ;
-			last_derivative[i]= derivative[i];
-			// add in derivative component
-			d = derivative[i]*pid.circle.in.d;//d
-			  integrator_circle[i] += ((float) rate_error[i]* pid.circle.in.i);// *DT;
-        intit = LIMIT(integrator_circle[i],-10,10) ;
-			//nav_circle[i] = p + d;
-  		out[i] =circle_lfp*(p+d+intit)+(1-circle_lfp)*nav_circle_last[i];
-		  nav_circle_last[i]=out[i]; 
-		  //nav_circle[i]=out[i];
-		  //nav_circle[i] += 0. *T *3.14f * ( -nav_circle[i] + out[i] );
- 	 }
-	 
-	 
-	 int flag[2]={1,1};
-		 
-//	 for(i=0;i<2;i++)
-//   {
-//	 if(circle_use[i]>0)
-//	 flag[i]=1;
-//	 else if(circle_use[i]<0)
-//	 flag[i]=-1;
-//	 else
-//	 flag[i]=0; 
-//	 }	 
-//	 if(SPID.YP==1) //2
-//	 flag[0]=1;//nav_circle[0]=flag[0]*(float)SPID.YD/10;
-//	 else  if(SPID.YP==2)
-//	 flag[0]=-1;//*(float)SPID.YD/10;
-//	 else
-//		flag[0]=0; 
-	 nav_circle[0]=LIMIT(flag[0]*circle_use[0]*pid.circle.in.p,-150,150);
- 
-//	 if(SPID.YI==1) //2
-//	 flag[1]=1;//nav_circle[1]=flag[1]*(float)SPID.YD/10;
-//	 else  if(SPID.YI==2)
-//	 flag[1]=-1;//nav_circle[1]=-flag[1]*(float)SPID.YD/10;
-//	 else
-//		flag[1]=0; 
-	 nav_circle[1]=-1*LIMIT(flag[1]*circle_use[1]*pid.circle.in.p,-150,150);
-	 
-	 if(!circle.check)
-	 nav_circle[0]=nav_circle[1]=0;
-// nav_circle[0] =Moving_Median(18,10,out[0]);
-// nav_circle[1] =Moving_Median(19,10,out[1]);	 
-}
-
 
 //---------------------------MAP----------------
 float target_map[MAP_NUM][5];//lat lon h init 
@@ -163,6 +56,52 @@ void map_builder(void){
 	 }
 	}
   }
+}
+
+
+_st_height_pid_v qr_ctrl[2];
+_st_height_pid qr_pid;
+double qr_gps_pos[2]={30.8498172, 119.6145019};//检查点
+u8 get_qr_pos=0;
+float qr_local_pos[3];
+float qr_local_pos1[3];
+float qr_pos_off[2];
+ void Estimate_land_marker_local_position(float qr_posx,float qr_posy,float qr_yaw,float drone_pos_n_local,float drone_pos_e_local,float drone_yaw,float T)
+{
+float qr_yaw_in_global;
+qr_yaw_in_global=To_180_degrees(drone_yaw-qr_yaw);
+float cy=cos(qr_yaw_in_global*0.0173);	
+float sy=sin(qr_yaw_in_global*0.0173);		
+float x_temp= qr_posx*cy + qr_posy*sy;
+float y_temp=	-qr_posx*sy+ qr_posy*cy;
+qr_local_pos[2]=sqrt(y_temp*y_temp+x_temp*x_temp);
+qr_local_pos[North]=drone_pos_n_local-y_temp;
+qr_local_pos[East]=drone_pos_e_local-x_temp;	
+}
+
+void Estimate_land_marker_local_position1(float qr_posx,float qr_posy,float qr_yaw,float drone_pos_n_local,float drone_pos_e_local,float drone_yaw,float T)
+{	
+float cy=cos(drone_yaw*0.0173);	
+float sy=sin(drone_yaw*0.0173);	
+float x_temp= qr_posx*cy + qr_posy*sy;
+float y_temp=	-qr_posx*sy+ qr_posy*cy;
+qr_local_pos1[2]=sqrt(y_temp*y_temp+x_temp*x_temp);
+qr_local_pos1[North]=drone_pos_n_local-y_temp;
+qr_local_pos1[East]=drone_pos_e_local-x_temp;	
+}
+
+
+float drone_local_pos[2];
+void Estimate_drone_local_position(double lat_drone,double lon_drone,double lat_cor,double lon_cor,float T)
+{
+    drone_local_pos[North] = (lat_drone - lat_cor) * navUkfData.r1;
+    drone_local_pos[East] =  (lon_drone - lon_cor) * navUkfData.r2;
+}
+float tar_drone_local_pos[2];
+void Estimate_drone_target_local_position(double tar_lat_drone,double tar_lon_drone,double lat_cor,double lon_cor,float T)
+{
+    tar_drone_local_pos[North] = (tar_lat_drone - lat_cor) * navUkfData.r1;
+    tar_drone_local_pos[East] =  (tar_lon_drone - lon_cor) * navUkfData.r2;
 }
 
 
@@ -288,6 +227,7 @@ double way_point[2][2]={
 double tar_point_globle[2]={39.9626688, 116.3039488};//全局输出
 double tar_now_gps[2];
 double tar_point_globler[2]={39.9626688, 116.3039488};//全局输出
+double gps_local_cor_zero[2]={39.9626688, 116.3039488};//局部GPS坐标系原点
 u8 state_set_point;
 u8 set_point1;
 void  GPS_hold(nmea_msg *gpsx_in,float T)
@@ -300,6 +240,10 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		gps_pid.kp=0.125;//0.2;
 		gps_pid.ki=0.00;//01;
 		gps_pid.kd=1.888;
+		
+		qr_pid.kp=0.08;//0.2;
+		qr_pid.ki=0.00;//01;
+		qr_pid.kd=1.888/2;
 	}
 		if(state==SU_MAP1||state==SU_MAP2||state==SU_MAP3){
 		gps_pid_use.kp=gps_pid.kp*1.618;
@@ -311,6 +255,11 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		gps_pid_use.ki=gps_pid.ki;
 		gps_pid_use.kd=gps_pid.kd;
 		}
+		
+
+	gps_local_cor_zero[0]=check_way_point[0];//使用第一个检测点作为qrland局部位置
+	gps_local_cor_zero[1]=check_way_point[1];
+		
 	#if USE_M100
 	 
 	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
@@ -412,6 +361,314 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 
 	
 	if(mode.en_gps)//返航测试
+	navUkfSetLocalPositionTarget( tar_point_globle[0], tar_point_globle[1]);//设置期望GPS位置	
+	if(tar_pos_gps[0]!=0||tar_pos_gps[1]!=0) 
+	navUkfSetHereAsPositionTarget();
+	
+	navUkfCalcGlobalDistance(lat, lon, &y[0], &y[1]);//0->north 1->east 目标和当前经纬度 转换m的误差
+	
+	if(ABS(y[0]>1*1000)||ABS(y[1]>1*1000))//>1km 复位
+	{
+	 navUkfSetHereAsPositionTarget();
+	 navUkfCalcGlobalDistance(lat, lon, &y[0], &y[1]);
+	 Estimate_drone_local_position( lat, lon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);
+	 Estimate_drone_target_local_position( navUkfData.holdLat, navUkfData.holdLon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);	
+	}	
+
+	//转换GPS到局部坐标系
+	Estimate_drone_local_position( lat, lon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);
+	Estimate_drone_target_local_position( navUkfData.holdLat, navUkfData.holdLon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);
+	
+  //qr land & map
+	float	yaw_use_gimbal_v=To_180_degrees(m100.Yaw-0*(float)(PWM_DJ[1]-1500)/250.*65);
+	if(qr.check&&qr.connect&&(state_v==SD_TO_HOME)&&get_qr_pos==0)	
+	{
+		get_qr_pos=1;
+		qr_gps_pos[0]=gps_data.latitude;
+		qr_gps_pos[1]=gps_data.longitude;
+		
+		qr_pos_off[0]=0;
+		qr_pos_off[1]=0;
+	}
+	
+	if(qr.check&&qr.connect)//QR map
+	{		
+	float qr_posx=(float)qr.x/100.;
+	float qr_posy=(float)qr.y/100.;
+	float qr_posz=(float)qr.z/100.;
+	float qr_yaw=qr.yaw;
+	Estimate_land_marker_local_position( qr_posx, qr_posy, qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
+	Estimate_land_marker_local_position1((float)qr.center_x/100., (float)qr.center_y/100., qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
+	}
+	
+	if(mode.use_qr_as_gps_tar&&mode.en_qr_land)//目标为qr 局部坐标
+	{
+		if(mode.qr_cal_by_px){
+		tar_drone_local_pos[North]=qr_local_pos1[North];
+		tar_drone_local_pos[East]= qr_local_pos1[East];}
+		else{
+		tar_drone_local_pos[North]=qr_local_pos[North];
+		tar_drone_local_pos[East]= qr_local_pos[East];}
+	}	
+	
+	
+// 导航控制误差计算
+  y[North]=drone_local_pos[North]-tar_drone_local_pos[North];
+  y[East]= drone_local_pos[East] -tar_drone_local_pos[East];
+	
+  float yaw_use;
+  #if USE_M100
+  yaw_use=Moving_Median(23,3,m100.Yaw);
+  #else
+  yaw_use=Yaw;		
+  #endif	
+	navUkfData.yawCos=cos(0.0173*yaw_use);
+	navUkfData.yawSin=sin(0.0173*yaw_use);
+	
+	//0-->wei  1 -->jing
+	//filter
+	nav_Data.gps_ero_dis_lpf[0]=flt_gps*Moving_Median(28,3,y[0]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[0];
+	nav_Data.gps_ero_dis_lpf[1]=flt_gps*Moving_Median(29,3,y[1]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[1];
+	//cal_pos_dis_for_line
+	float k[3],b[3];
+	float jiao[2];
+	line_function_from_arrow(0,0,m100.Yaw,&k[0],&b[0]);
+	line_function90_from_arrow(y[1],y[0],m100.Yaw,&k[1],&b[1]);
+	//两直线交点
+  cross_point_of_lines(k[0],b[0],k[1],b[1],&jiao[0],&jiao[1]);
+  nav_Data.dis_ero=cal_dis_of_points(jiao[0],jiao[1],y[1],y[0]);
+	
+	int max_ero0,max_ero1;
+	if(fabs(nav_Data.gps_ero_dis_lpf[0])>800*4)
+		max_ero0=600*2;
+	else
+		max_ero0=600;
+	
+	if(fabs(nav_Data.gps_ero_dis_lpf[1])>800*4)
+		max_ero1=600*2;
+	else
+		max_ero1=600;
+	//PID
+  //N
+	if(gps_pid.ki==0||flag)gps_ctrl[0].err_i=0;
+	gps_ctrl[0].err = ( gps_pid_use.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[0],25),-max_ero0,max_ero0) );//mm
+	gps_ctrl[0].err_i += gps_pid_use.ki *gps_ctrl[0].err *T;
+	gps_ctrl[0].err_i = LIMIT(gps_ctrl[0].err_i,-1 *ULTRA_INT,1 *ULTRA_INT);
+	gps_ctrl[0].err_d = gps_pid_use.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[0].err - gps_ctrl[0].err_old) );
+	gps_ctrl[0].pid_out = gps_ctrl[0].err + gps_ctrl[0].err_i + gps_ctrl[0].err_d;
+	gps_ctrl[0].pid_out = LIMIT(gps_ctrl[0].pid_out,-1000,1000);
+	gps_ctrl[0].err_old = gps_ctrl[0].err;
+	//E
+	if(gps_pid.ki==0||flag)gps_ctrl[1].err_i=0;
+	gps_ctrl[1].err = ( gps_pid_use.kp*LIMIT(my_deathzoom(nav_Data.gps_ero_dis_lpf[1],25),-max_ero1,max_ero1) );//mm
+	gps_ctrl[1].err_i += gps_pid_use.ki *gps_ctrl[1].err *T;
+	gps_ctrl[1].err_i = LIMIT(gps_ctrl[1].err_i,-1 *ULTRA_INT,1 *ULTRA_INT);
+	gps_ctrl[1].err_d = gps_pid_use.kd *( 0.0f *(-(0*1000)*T) + 1.0f *(gps_ctrl[1].err - gps_ctrl[1].err_old) );
+	gps_ctrl[1].pid_out = gps_ctrl[1].err + gps_ctrl[1].err_i + gps_ctrl[1].err_d;
+	gps_ctrl[1].pid_out = LIMIT(gps_ctrl[1].pid_out,-1000,1000);
+	gps_ctrl[1].err_old = gps_ctrl[1].err;
+	
+	
+	nav_Data.holdSpeedN = -gps_ctrl[0].pid_out*gain_out ;
+	nav_Data.holdSpeedE = -gps_ctrl[1].pid_out*gain_out ;
+
+	//x-> pitch  y->roll  --->ero
+	nav_Data.velX = 	nav_Data.holdSpeedN * navUkfData.yawCos + 	nav_Data.holdSpeedE * navUkfData.yawSin;
+	nav_Data.velY = 	nav_Data.holdSpeedE * navUkfData.yawCos - 	nav_Data.holdSpeedN * navUkfData.yawSin;
+
+	out_temp[PITr]=nav_Data.velX;
+	out_temp[ROLr]=nav_Data.velY;
+	
+	tar_point_globler[0]=tar_point_globler[0];
+	tar_point_globler[1]=tar_point_globler[1];
+				if(gps_target_change){
+					if(tar_point_globle[0]!=tar_now_gps[0]||tar_point_globle[1]!=tar_now_gps[1])
+						gps_target_change=0;
+					}
+	}	
+	// pix control land for qr code
+	float pix_dead=0;
+	if(mode.qr_cal_by_px)
+		pix_dead=0.3;
+	else
+		pix_dead=0.8;
+	
+	float ero_qr_pix[2];
+	static float ero_qr_pixr[2];
+		if((mode.land_by_pix&&mode.en_qr_land&&
+			((ABS(circle.x-160)<160*pix_dead&&ABS(circle.y-120)<120*pix_dead))
+		   &&state_v==SD_CIRCLE_MID_DOWN)||0)//使用图像对准
+	{
+		if(qr.check&&qr.connect){
+		ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,0)*((float)qr.z/100.);
+		ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,0)*((float)qr.z/100.);	
+		out_temp[ROLr]=ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd;
+	  out_temp[PITr]=ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd;
+		ero_qr_pixr[ROLr]=ero_qr_pix[ROLr];	
+		ero_qr_pixr[PITr]=ero_qr_pix[PITr];	
+		out_temp[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS*2,MAX_GPS*2);
+	  out_temp[PITr]=LIMIT(out_temp[PITr],-MAX_GPS*2,MAX_GPS*2);
+		}
+		else
+		{
+		ero_qr_pixr[ROLr]=0;	
+		ero_qr_pixr[PITr]=0;		
+		}		
+	}
+	
+	//final output  0  ROL  1 PIT
+	if((gpsx.gpssta>=1&&gpsx.rmc_mode=='A')||0){//定位有效
+	nav_gps[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS,MAX_GPS);
+	nav_gps[PITr]=LIMIT(out_temp[PITr],-MAX_GPS,MAX_GPS);
+  }
+	else
+	{	
+	nav_gps[ROLr]=0;
+	nav_gps[PITr]=0;
+	}
+		/*
+		north    LAT=1     V_West+                             __________
+		|   Y+  y                                              P- R- GPS-
+		                                        
+		|P+
+	
+    _____	R	+   x         LON=0  V_East+
+	   
+head  |    1 PIT y-  RC0
+			| 
+		   _____  0 ROL x+   RC 1
+	
+		*/
+
+		
+}
+
+void  GPS_hold1(nmea_msg *gpsx_in,float T)
+{ static u8 init,state;
+	float out_temp[2];
+	u8 set_gps_point;
+	_st_height_pid gps_pid_use;
+	float gain_out=0.4;
+	if(!init){init=1;
+		gps_pid.kp=0.125;//0.2;
+		gps_pid.ki=0.00;//01;
+		gps_pid.kd=1.888;
+		
+		qr_pid.kp=0.88;//0.2;
+		qr_pid.ki=0.00;//01;
+		qr_pid.kd=1.888;
+	}
+		if(state==SU_MAP1||state==SU_MAP2||state==SU_MAP3){
+		gps_pid_use.kp=gps_pid.kp*1.618;
+		gps_pid_use.ki=gps_pid.ki;
+		gps_pid_use.kd=gps_pid.kd;
+		gain_out=0.8;
+		}else{
+		gps_pid_use.kp=gps_pid.kp;
+		gps_pid_use.ki=gps_pid.ki;
+		gps_pid_use.kd=gps_pid.kd;
+		}
+	#if USE_M100
+	 
+	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
+		 set_point1=1;
+	 else if(ABS(m100.Rc_pit)<1500&&ABS(m100.Rc_rol)<1500&&ABS(m100.Rc_yaw)<1500)
+		 set_point1=0;
+	 lon = m100.Lon;
+	 lat = m100.Lat;
+	 if(m100.STATUS>0&&m100.Lat!=0&&m100.Lon!=0&&!dji_rst_protect)
+	 gpsx.gpssta=1;
+	 else
+	 gpsx.gpssta=0;	 
+	 gpsx.rmc_mode='A';
+	#else
+	 lon = gpsx.longitude;
+	 lat = gpsx.latitude;
+  #endif	
+	//if(1){
+	if(lat!=0&&lon!=0&&gpsx.gpssta>=1&&gpsx.rmc_mode=='A'){//????
+	gps_data.latitude=lat;
+	gps_data.longitude=lon;
+	gps_data.angle=gpsx.angle;	
+	
+	set_gps_point=mode.set_point1;
+  set_gps_point=set_point1;		
+	static u16 cnt_delay;	
+	switch(state_set_point)	
+	{
+		case 0:
+		if(set_gps_point)	
+		{
+		state_set_point=1;cnt_delay=0;
+		
+		}
+		
+		break;
+		case 1:
+		check_way_point[0]=gps_data.latitude;
+		check_way_point[1]=gps_data.longitude;
+		if(!set_gps_point)//&&check_way_point[0]!=gps_data.latitude&&check_way_point[1]!=gps_data.latitude)	
+		{
+		state_set_point=2;
+		}
+		break;
+		case 2:
+		if(set_gps_point)//&&check_way_point[0]!=gps_data.latitude&&check_way_point[1]!=gps_data.latitude)	
+		{
+		if(cnt_delay++>10){cnt_delay=0;	
+		state_set_point=3;
+	}
+		}
+		break;
+		case 3:
+		way_point[0][0]=gps_data.latitude;
+		way_point[0][1]=gps_data.longitude;
+		if(!set_gps_point)//&&check_way_point[0]!=gps_data.latitude&&check_way_point[1]!=gps_data.latitude)	
+		{
+		state_set_point=4;
+		}
+		break;
+		case 4:
+		if(set_gps_point)//&&way_point[0][0]!=gps_data.latitude&&way_point[0][1]!=gps_data.latitude)	
+		{
+		if(cnt_delay++>10){cnt_delay=0;		
+		state_set_point=5;
+		
+		}
+		}
+		break;
+	  case 5:
+		way_point[1][0]=gps_data.latitude;
+		way_point[1][1]=gps_data.longitude;	
+		if(!set_gps_point)	
+		{
+		if(cnt_delay++>10){cnt_delay=0;	
+		Yaw_set_dji=To_180_degrees(m100.Yaw);	
+		state_set_point=0;
+		//if(KEY[3])
+		WRITE_PARM();
+		}
+		}
+		
+		break;
+	
+	}
+		
+
+	u8 flag;
+	if(Rc_Pwm_Inr_mine[RC_PITCH]<OFF_RC_PIT-80||Rc_Pwm_Inr_mine[RC_PITCH]>OFF_RC_PIT+80||
+	Rc_Pwm_Inr_mine[RC_ROLL]<OFF_RC_ROL-80||Rc_Pwm_Inr_mine[RC_ROLL]>OFF_RC_ROL+80)
+	flag=1;
+	else 
+	flag=0;
+	
+	navUkfCalcEarthRadius(lat);
+  if(flag)//????	
+  navUkfSetHereAsPositionTarget();	
+	float y[3];
+
+	
+	if(mode.en_gps)//????
 	navUkfSetLocalPositionTarget( tar_point_globle[0], tar_point_globle[1]);	
 	if(tar_pos_gps[0]!=0||tar_pos_gps[1]!=0) 
 	navUkfSetLocalPositionTarget( 39.9626144, 116.3038848);
@@ -445,7 +702,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	float jiao[2];
 	line_function_from_arrow(0,0,m100.Yaw,&k[0],&b[0]);
 	line_function90_from_arrow(y[1],y[0],m100.Yaw,&k[1],&b[1]);
-	//两直线交点
+	//?????
   cross_point_of_lines(k[0],b[0],k[1],b[1],&jiao[0],&jiao[1]);
   nav_Data.dis_ero=cal_dis_of_points(jiao[0],jiao[1],y[1],y[0]);
 	
@@ -499,9 +756,38 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 					}
 	}	
 	
+		// pix control land for qr code
+	float pix_dead=0;
+	if(mode.qr_cal_by_px)
+		pix_dead=0.3;
+	else
+		pix_dead=0.8;
+	
+	float ero_qr_pix[2];
+	static float ero_qr_pixr[2];
+		if((mode.land_by_pix&&mode.en_qr_land&&
+			((ABS(circle.x-160)<160*pix_dead&&ABS(circle.y-120)<120*pix_dead))
+		   &&state_v==SD_CIRCLE_MID_DOWN)||0)//使用图像对准
+	{
+		if(qr.check&&qr.connect){
+		ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,0)*((float)qr.z/100.);
+		ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,0)*((float)qr.z/100.);	
+		out_temp[ROLr]=ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd;
+	  out_temp[PITr]=ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd;
+		ero_qr_pixr[ROLr]=ero_qr_pix[ROLr];	
+		ero_qr_pixr[PITr]=ero_qr_pix[PITr];	
+		out_temp[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS*2,MAX_GPS*2);
+	  out_temp[PITr]=LIMIT(out_temp[PITr],-MAX_GPS*2,MAX_GPS*2);
+		}
+		else
+		{
+		ero_qr_pixr[ROLr]=0;	
+		ero_qr_pixr[PITr]=0;		
+		}		
+	}
 	
 	//0  ROL  1 PIT
-	if(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'){//定位有效
+	if(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'){//????
 	nav_gps[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS,MAX_GPS);
 	nav_gps[PITr]=LIMIT(out_temp[PITr],-MAX_GPS,MAX_GPS);
   }
@@ -525,5 +811,3 @@ head  |    1 PIT y-  RC0
 		*/
 		
 }
-
-

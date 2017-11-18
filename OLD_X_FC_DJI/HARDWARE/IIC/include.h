@@ -262,25 +262,27 @@ void Flow_set_tar(float set);
 #define SD_SHUT_DOWN 21
 #define SD_SAFE 22
 #define SD_TO_HOME 26
-
+#define SU_TO_QR_FIRST 27
 //--------------------------------------ZHB----------------------------------------
 #include "m100.h"
 #define TEST_GPS 0
 #define USE_M100 1
 #define USE_MAP 1 //使用MAP信息
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
-#define MISSION_USE_FAKE_TARGET 0//没有屏幕测试
+#define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
 #define DEBUG_IN_ROOM 0//屋内测试
 #define USE_PAN_800 1 //使用飞宇三轴云台
-#define RISK_MODE 1   //冒险模式
+#define RISK_MODE 0   //冒险模式
 //云台初始化位置
 #if USE_PAN_800
 #define  PWM_DJ0 1500
 #define	 PWM_DJ1 1500
+#define	 PWM_DJ_DOWN 1000
 #else
 #define  PWM_DJ0 1630//Pitch
 #define	 PWM_DJ1 1500//Yaw
+#define	 PWM_DJ_DOWN 800
 #endif
 
 #if USE_M100
@@ -320,5 +322,6 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
+#define DEBUG_QR_LAND 
 #endif
 

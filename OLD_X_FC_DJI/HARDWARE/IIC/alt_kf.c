@@ -1078,89 +1078,24 @@ static void altDoPresUpdate(float measuredPres,float dt) {
 	#if USE_UKF_SONAR
 		altUkfData_sonar.x = srcdkfGetState(altUkfData_sonar.kf);
 	#endif
- ///   Q[ALT_STATE_POS] = 5.0f;
- //   Q[ALT_STATE_VEL] = 1e-6f;
- //   Q[ALT_STATE_BIAS] = 0.05f;
-  //  noise = ALT_PRES_NOISE;
-	/*
-	if(height_ctrl_mode==2&&height_ctrl_moder==1){
-	V[ALT_NOISE_BIAS] = ALT_BIAS_NOISE;
-  V[ALT_NOISE_VEL] = ALT_VEL_NOISE;
-  exp_height=ultra_distance;
-   srcdkfSetVariance(altUkfData.kf, Q, V, 0, 0);}
-	else	if(height_ctrl_mode==1&&height_ctrl_moder==2){
-	V[ALT_NOISE_BIAS] = ALT_BIAS_NOISE_BMP;
-  V[ALT_NOISE_VEL] = ALT_VEL_NOISE_BMP;
-  
-   srcdkfSetVariance(altUkfData.kf, Q, V, 0, 0);}
-	else	if(height_ctrl_mode==2&&height_ctrl_moder==0){
-	V[ALT_NOISE_BIAS] = ALT_BIAS_NOISE;
-  V[ALT_NOISE_VEL] = ALT_VEL_NOISE;
-  
-   srcdkfSetVariance(altUkfData.kf, Q, V, 0, 0);}
-	else	if(height_ctrl_mode==1&&height_ctrl_moder==0){
-	V[ALT_NOISE_BIAS] = ALT_BIAS_NOISE_BMP;
-  V[ALT_NOISE_VEL] = ALT_VEL_NOISE_BMP;
-  
-   srcdkfSetVariance(altUkfData.kf, Q, V, 0, 0);}*/
 	
-
-	//if(height_ctrl_mode==1)
-  // y = (float)baroAlt/100;//navUkfPresToAlt(measuredPres);
-	//else if(height_ctrl_mode==2)
 	 y = (float)baroAlt/1000;
 	  noise = ALT_PRES_NOISE;
 	 if(baro_set)
     srcdkfMeasurementUpdate(altUkfData_bmp.kf, 0, &y, 1, 1, &noise, altUkfPresUpdate);
-//	 #if defined(SONAR_SAMPLE1)
-//	 float temp_sonar;
-	//  y = (float)(Moving_Median(1,10,ultra_distance))/1000;
-	  
-	// #elif defined(SONAR_SAMPLE2)
-	// if(ultra_distance<3900)
 	  y = (float)(Moving_Median(1,10,ultra_distance))/1000;
-//	 #elif defined(SONAR_SAMPLE3)
-	//  y = (float)(Moving_Median(1,5,ultra_distance))/1000;
-	// #endif
 	  noise = ALT_PRES_NOISE_SONAR;
 	 	#if USE_UKF_SONAR
-  // y = (float)(Moving_Median(1,5,ultra_distance))/1000;
 	  Moving_Average( (float)( y),sonar_h_arr,SONAR_HIHG_NUM, sonar_h_cnt ,&sonar_temp);	 
 	  srcdkfMeasurementUpdate(altUkfData_sonar.kf, 0, &sonar_temp, 1, 1, &noise, altUkfPresUpdate);
-	  
-
 	 
 	  ALT_POS_SONAR3=sonar_temp*K_SONAR/10+(1-K_SONAR/10)*(ALT_POS_SONAR3-0.01*0);//ALT_VEL_BMP_EKF);
-   // ALT_POS_SONAR2=ALT_POS_SONAR;
-	 // ALT_POS_SONAR2=ALT_POS_SONAR3;
 	 if(POS_SONAR_TEST!=0)
 		 ALT_POS_SONAR2=POS_SONAR_TEST;
 	 else
 	  ALT_POS_SONAR2=ALT_POS_SONAR3;
 	 
 	 ALT_POS_SONAR2=LIMIT(ALT_POS_SONAR2,0,8);
-//	 #if USE_M100
-//	 ALT_POS_SONAR2=(float)ultra_distance/1000.;
-//	 #endif
-//		if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.100 )
-//		{
-//			
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 4.0f *3.14f *T ) ) ) *(ultra_dis_tmp - ALT_POS_SONAR2) ;
-//		}
-//		else if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.200 )
-//		{
-//			
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 3.2f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}
-//		else if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.400 )
-//		{
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 2.2f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}
-//		else
-//		{
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 1.6f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}	
-		
 	  #else
 	
 	 
@@ -1182,29 +1117,7 @@ static void altDoPresUpdate(float measuredPres,float dt) {
     ALT_VEL_SONAR=ultra_sp_tmp;
 	
 	Moving_Average( (float)( y),sonar_h_arr,SONAR_HIHG_NUM, sonar_h_cnt ,&ALT_POS_SONAR2);
-
-	   //ALT_POS_SONAR2=ultra_dis_tmp=y;//(float)(Moving_Median(1,5,ultra_distance))/1000; 
-//		if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.100 )
-//		{
-//			
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 4.0f *3.14f *T ) ) ) *(ultra_dis_tmp - ALT_POS_SONAR2) ;
-//		}
-//		else if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.200 )
-//		{
-//			
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 3.2f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}
-//		else if( ABS(ultra_dis_tmp - ALT_POS_SONAR2) < 0.400 )
-//		{
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 2.2f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}
-//		else
-//		{
-//			ALT_POS_SONAR2 += ( 1 / ( 1 + 1 / ( 1.6f *3.14f *T ) ) ) *(ultra_dis_tmp- ALT_POS_SONAR2) ;
-//		}	
-//		
 	 #endif
-	//height_ctrl_moder=height_ctrl_mode;
 }
 
 void altUkfProcess(float measuredPres) {

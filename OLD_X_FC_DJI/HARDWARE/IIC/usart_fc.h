@@ -258,6 +258,10 @@ u8 en_flow_hold;
 u8 debug_without_odroid;
 u8 cal_rc;
 u8 mems_state;
+u8 use_qr_as_gps_tar;
+u8 qr_cal_by_px;
+u8 land_by_pix;
+u8 en_qr_land;
 //flow
 u8 en_flow_gro_fix;
 u8 flow_size;

@@ -26,7 +26,6 @@ void mems_task(void *pdata)
 	{
 	MPU6050_Read(); 															//读取mpu6轴传感器
 	MPU6050_Data_Prepare( 0.005 );			//mpu6轴传感器数据处理
-	if(cnt++>1){cnt=0;ANO_AK8975_Read();}			//获取电子罗盘数据	
 	MS5611_ThreadNew();
 	delay_ms(5);
 	}
@@ -95,7 +94,8 @@ float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
 float gain_global[2]={1.234,1};
-float risk_gain=2.68;
+float risk_gain=2;
+u8 en_track=1;
 float u_gain_by_ero(float in,float gain,u8 sel,float dead)
 {
     if(ABS(nav_Data.gps_ero_dis_lpf[sel])>dead)
@@ -251,6 +251,9 @@ void inner_task(void *pdata)
 	}
 	#endif
 	// 云台控制
+	#if defined(DEBUG_QR_LAND)
+	en_track=0;
+	#endif
 	static u8 dj_mode_reg;
 	if((mode.dj_by_hand&&!dj_mode_reg))
 	{
@@ -295,7 +298,7 @@ void inner_task(void *pdata)
 	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
    PWM_DJ[1]=PWM_DJ1;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
 	}
-	else if(track.check&&circle.connect&&(state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
+	else if(en_track&&track.check&&circle.connect&&(state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
 	float ero[2],ero2[2],ero3[2],ero4[2];
   static float ero_r[2],ero_r2[2],ero_r3[2];
   ero[0]=my_deathzoom_2(-circle.y+120,30);//,0.5,(float)68/1200);
@@ -358,10 +361,12 @@ void inner_task(void *pdata)
 				gimbal_stink=0;
 			}else gimbal_stink=0;
 	#endif
-			
-	PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
-	//PWM_DJ[1]=DJ_TEST[1];//ROLL_DJ
 	
+  if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))			
+	PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ
+
+	//PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
+	//PWM_DJ[1]=DJ_TEST[1];//ROLL_DJ
 	/*duoji*/
 		float out[3];
 	float ero_dj[3];
@@ -399,20 +404,6 @@ void inner_task(void *pdata)
 	PWM_DJ[0]=LIMIT(PWM_DJ[0],1020,1980);PWM_DJ[1]=LIMIT(PWM_DJ[1],1500-YAW_PWM_RANGE,1500+YAW_PWM_RANGE);
 	Rc_Pwm_Out_mine[4]=(1-flt_track[1])*Rc_Pwm_Out_mine[4]+(flt_track[1])*PWM_DJ[0];//out put pit
 //-----------------------
-	
-//	SHOOT_PWM_OFF1=((Rc_Get.AUX4-500)/10)*0.8;//云台起飞偏执
-
-	
-//	if(mode.en_yun_per_off)
-//	{
-////	  if(state_v==SD_HOLD)
-////			Rc_Pwm_Out_mine[5]=(1-flt_track[1])*Rc_Pwm_Out_mine[5]+(flt_track[1])*PWM_DJ[1]+DJ_YAW_OFF+SHOOT_PWM_OFF1-YUN_PER_OFF;//out put yaw
-////		else if(state_v==SD_HOLD_BACK)
-////			Rc_Pwm_Out_mine[5]=(1-flt_track[1])*Rc_Pwm_Out_mine[5]+(flt_track[1])*PWM_DJ[1]+DJ_YAW_OFF+SHOOT_PWM_OFF1+YUN_PER_OFF;//out put yaw
-////		else
-//			Rc_Pwm_Out_mine[5]=(1-flt_track[1])*Rc_Pwm_Out_mine[5]+(flt_track[1])*PWM_DJ[1]+DJ_YAW_OFF+SHOOT_PWM_OFF1;//out put yaw
-//	}	
-//	else
 	Rc_Pwm_Out_mine[5]=(1-flt_track[1])*Rc_Pwm_Out_mine[5]+(flt_track[1])*PWM_DJ[1]+DJ_YAW_OFF+SHOOT_PWM_OFF1;//out put yaw
 	
 		
@@ -446,23 +437,7 @@ void inner_task(void *pdata)
 	}}
 	
 	#endif
-//---------------遥控器旋钮	
-/*	
-	SHOOT_PWM_DEAD1=Rc_Get.AUX2/10;//上下//0~1000
-	SHOOT_PWM_DEAD0=Rc_Get.AUX1/10;//左右
-	#if USE_M100
-	SHOOT_PWM_OFF0=-((float)Rc_Get.AUX3)*2/10.;
-	#else
-	SHOOT_PWM_OFF0=-((float)Rc_Get.AUX3)/10.;
-	#endif
-*/
-	//if(mode.dj_yaw_follow&&!mode.dj_by_hand&&ABS((int)Rc_Pwm_In_mine[RC_YAW]-1500)<DEAD_NAV_RC&&track.check&&circle.connect&&state_v==13)
-	//Rc_Pwm_Out_mine[RC_YAW]=PWM_DJ[2];//(1-flt_track[2])*Rc_Pwm_Out_mine[RC_YAW]+(flt_track[2])*PWM_DJ[2];
-	
 	SetPwm(Rc_Pwm_Out_mine,Rc_Pwm_off,pwmin.min,pwmin.max);
-	//Rc_Pwm_Out_mine[4] pit
-	//Rc_Pwm_Out_mine[5] yaw
-  //SetPwm_AUX_DJ((Rc_Pwm_Out_mine[4]-1500)*k_dj_yun[0],0,(Rc_Pwm_Out_mine[5]-1500)*k_dj_yun[1]);
 	SetPwm_AUX(Rc_Pwm_Out_mine[4],Rc_Pwm_Out_mine[5],0);
 	dj_mode_reg=mode.dj_by_hand;
 	
@@ -487,13 +462,10 @@ void outer_task(void *pdata)
 	outer_loop_time = Get_Cycle_T(GET_T_OUTTER);								//获取外环准确的执行周期
 	/*IMU更新姿态。输入：半个执行周期，三轴陀螺仪数据（转换到度每秒），三轴加速度计数据（4096--1G）；输出：ROLPITYAW姿态角*/
  	IMUupdate(0.5f *outer_loop_time,mpu6050.Gyro_deg.x, mpu6050.Gyro_deg.y, mpu6050.Gyro_deg.z, mpu6050.Acc.x, mpu6050.Acc.y, mpu6050.Acc.z,&Roll_R,&Pitch_R,&Yaw_R);		
- 	CTRL_2( outer_loop_time ); 														// 外环角度控制。输入：执行周期，期望角度（摇杆量），姿态角度；输出：期望角速度。<函数未封装>
   Pitch=Pitch_R;
 	Roll=Roll_R;	
 	Yaw=Yaw_R;	
-		
-  if(cnt1++>9){cnt1=0;GPS_calc_poshold(); 
-	}
+
 	#if USE_M100
 	if(cnt2++>4-1){
 	#else
@@ -550,6 +522,10 @@ void nrf_task(void *pdata)
 		mode.hold_use_flow=0;		
 		mode.en_rth_mine=1;//KEY[7];
 		//mode.auto_fly_up=1;
+		
+		mode.en_qr_land=1;
+		mode.land_by_pix=1;
+		mode.qr_cal_by_px=1;
 		#endif
 		
 		EN_SHOOT(en_shoot||KEY[2]);
@@ -586,13 +562,6 @@ void sonar_task(void *pdata)
 {							  
  	while(1)
 	{if(1){
-//		#if defined(SONAR_USE_TIG) 
-//		Ultra_Duty(); 
-//		#elif defined(SONAR_USE_UART) 
-//		Ultra_Duty();
-//		#elif defined(SONAR_USE_SCL)  
-//		Ultra_Duty_SCL(); 
-//		#endif
 	}
 	delay_ms(100);  
 	}

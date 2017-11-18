@@ -59,8 +59,6 @@ int main(void)
 	MS5611_Init();						//气压计初始化
 	Delay_ms(100);						//延时
 	MPU6050_Init(5);   			//加速度计、陀螺仪初始化，配置20hz低通
-	Delay_ms(100);						//延时
-	HMC5883L_SetUp();	
 	Delay_ms(100);
 	MS5611_Init();						//气压计初始化
 	altUkfInit();

@@ -72,4 +72,3 @@
 ..\obj\rc_mine.o: ..\HARDWARE\IIC\arm_math_m.h
 ..\obj\rc_mine.o: ..\HARDWARE\IIC\circle.h
 ..\obj\rc_mine.o: ..\HARDWARE\IIC\gps.h
-..\obj\rc_mine.o: ..\HARDWARE\IIC\pwm_in.h

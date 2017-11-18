@@ -7,6 +7,7 @@
 {
  int x,y,z;
  float pit,rol , yaw ;
+	int center_x,center_y;
  int r;
  int x_flp,y_flp;
  u8 check;
@@ -20,11 +21,14 @@
   int map[6][4];
 	u8 dj_fly_line;
 }CIRCLE;
-extern CIRCLE circle,track,mouse;
+extern CIRCLE circle,track,mouse,qr;
 extern float nav_circle[2],nav_land[2];
 void circle_control(float T);
 #define MID_Y 125
 #define MID_X 140
+
+#define East 1
+#define North 0
 extern float circle_use[2];
 extern float  integrator[2];
 void  GPS_hold(nmea_msg *gpsx_in,float T);
@@ -59,6 +63,15 @@ extern float target_map[MAP_NUM][5];
 void Clear_map(void);
 void map_builder(void);
 void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *posEast);
+
+extern double qr_gps_pos[2];//检查点
+extern double gps_local_cor_zero[2];//局部GPS坐标系原点
+extern float qr_local_pos[3],drone_local_pos[2], qr_local_pos1[3],qr_pos_off[2];
+extern u8 get_qr_pos;
+extern float tar_drone_local_pos[2];
+extern _st_height_pid_v qr_ctrl[2];
+extern _st_height_pid qr_pid;
+void GPS_Qr_Control(nmea_msg *gpsx_in,float T);
 #endif
 
 

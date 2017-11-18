@@ -85,6 +85,7 @@ void Usart2_Init(u32 br_num)//--GOL-link
 	USART_Cmd(USART2, ENABLE); 
 }
 RESULT color;
+CIRCLE qr;
 float dt_flow_rx;
 u16 data_rate_gol_link;
 PID_STA HPID,SPID,FIX_PID,NAV_PID;
@@ -859,29 +860,40 @@ float rate_gps_board;
 		//circle.map[i][3]=(int16_t)(*(data_buf+8+i*4));//r
 		}
 		}
-		else if(*(data_buf+2)==0x15)//Laser
-  {
 	
-	//mouse.check=(*(data_buf+4));///10.;
-	laser_o[0]=LPF_1st(laser_o[0],((int16_t)(*(data_buf+5)<<8)|*(data_buf+6)),k_laser);
-	laser_o[1]=LPF_1st(laser_o[1],((int16_t)(*(data_buf+7)<<8)|*(data_buf+8)),k_laser);
-	laser_o[2]=LPF_1st(laser_o[2],((int16_t)(*(data_buf+9)<<8)|*(data_buf+10)),k_laser);
-	laser_o[3]=LPF_1st(laser_o[3],((int16_t)(*(data_buf+11)<<8)|*(data_buf+12)),k_laser);
-	laser_o[4]=LPF_1st(laser_o[4],((int16_t)(*(data_buf+13)<<8)|*(data_buf+14)),k_laser);
-  		
+	else if(*(data_buf+2)==0x21)//Qr land
+  {
 		
-	if(Pitch<-15 && Pitch >=-25)
-		ALT_POS_SONAR_HEAD_LASER_SCANER=laser_o[3];
-	else if(Pitch<-25)
-		ALT_POS_SONAR_HEAD_LASER_SCANER=laser_o[4];
-	else if(Pitch>15 && Pitch <=25)
-		ALT_POS_SONAR_HEAD_LASER_SCANER=laser_o[1];
-	else if(Pitch>25)
-		ALT_POS_SONAR_HEAD_LASER_SCANER=laser_o[0];
-	else 
-		ALT_POS_SONAR_HEAD_LASER_SCANER=laser_o[2];
-	ALT_POS_SONAR_HEAD_LASER_SCANER=(float)ALT_POS_SONAR_HEAD_LASER_SCANER/1000.;
-	}		
+	qr.connect=1;
+	circle.connect=1;
+	circle.lose_cnt=0;
+	qr.lose_cnt=0;
+	qr.check=track.check=circle.check=(*(data_buf+4));///10.;
+	qr.x=Moving_Median(12,10,((int16_t)(*(data_buf+5)<<8)|*(data_buf+6)));
+	qr.y=Moving_Median(13,10,((int16_t)(*(data_buf+7)<<8)|*(data_buf+8)));
+	qr.z=Moving_Median(14,10,((int16_t)(*(data_buf+9)<<8)|*(data_buf+10)));
+	qr.pit=((int16_t)(*(data_buf+11)<<8)|*(data_buf+12));
+	qr.rol=((int16_t)(*(data_buf+13)<<8)|*(data_buf+14));
+	qr.yaw=Moving_Median(15,5,((int16_t)(*(data_buf+15)<<8)|*(data_buf+16)));
+	
+	if(qr.check){
+		int temp=((int16_t)(*(data_buf+17)<<8)|*(data_buf+18));
+		if(ABS(temp)<1000)
+		circle.x=Moving_Median(10,5,temp);
+		temp=((int16_t)(*(data_buf+19)<<8)|*(data_buf+20));
+		if(ABS(temp)<1000)
+		circle.y=Moving_Median(11,5,temp);	
+	}
+//	/*1  0
+//	
+//	  2  3*/
+//	avoid_color[0]=*(data_buf+21);	
+//	avoid_color[1]=*(data_buf+22);
+//	avoid_color[2]=*(data_buf+23);
+//	avoid_color[3]=*(data_buf+24);
+	qr.center_x=-((int16_t)(*(data_buf+25)<<8)|*(data_buf+26));	
+	qr.center_y=-((int16_t)(*(data_buf+27)<<8)|*(data_buf+28));
+	}
 }
  
 

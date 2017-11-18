@@ -93,7 +93,6 @@ void Para_Init()
 {
 	Param_SetSettingToFC();
 	Ctrl_Para_Init();
-	WZ_Speed_PID_Init();
 	Ultra_PID_Init();
 }
 

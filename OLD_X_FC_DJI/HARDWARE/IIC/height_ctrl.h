@@ -39,7 +39,7 @@ void Ultra_Ctrl_Safe(float T,float thr);
 extern float ultra_ctrl_out,ultra_ctrl_out_head;
 
 extern float height_ctrl_out,exp_height_head;
-extern float exp_height_front,exp_height_back,exp_height_shoot_off;
+extern float exp_height_front,exp_height_back,exp_height_shoot_off,exp_height_home;
 extern u8 baro_ctrl_start;
 
 extern float ultra_speed;
