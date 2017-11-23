@@ -72,8 +72,11 @@ int main(void)
 	#endif
 	#if USE_M100
 	Usart2_Init(115200L);
-	#else
+	#else 
 	Usart2_Init(115200L);     //IMU DJ Link  
+	#endif
+	#if USE_PX4
+	Usart2_Init(576000L); 
 	#endif
 	#if EN_DMA_UART2
 	MYDMA_Config(DMA1_Stream6,DMA_Channel_4,(u32)&USART2->DR,(u32)SendBuff4,SEND_BUF_SIZE4+2,1);//DMA2,STEAM7,CH4,外设为串口1,存储器为SendBuff,长度为:SEND_BUF_SIZE.
@@ -91,24 +94,14 @@ int main(void)
   Uart5_Init(230400L);    //VIDEO_LINK
 //-----------------------Mode &  Flag init--------------------	
 //system
-  #if RISK_MODE
   track.control_yaw_pix=1.234*1;//扫射幅度
-  #else
-  track.control_yaw_pix=1.234*1;//扫射幅度
-	#endif
-#define AUX_SEL 1
-#if AUX_SEL //big
   #if USE_PAN_800
-	track.control_k=0.325;
+	track.control_k=0.325*0.68;
 	track.control_k_miss=0.325;
 	#else
   track.control_k=0.325;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
 	track.control_k_miss=0.325;//云台控制增益2.8;//;
 	#endif
-#else  //small
-  track.control_k=0.45;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
-	track.control_k_miss=0.45;//云台控制增益2.8;//;
-#endif
 	track.control_yaw=0.3;//云台对准左右增益
 #if USE_M100
   circle.control_k=-0.12;//45/4;//云台对准上下增益1.325;

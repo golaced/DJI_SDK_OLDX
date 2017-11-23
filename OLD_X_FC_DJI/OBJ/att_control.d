@@ -68,4 +68,3 @@
 ..\obj\att_control.o: ..\HARDWARE\IIC\arm_math_m.h
 ..\obj\att_control.o: ..\HARDWARE\IIC\circle.h
 ..\obj\att_control.o: ..\HARDWARE\IIC\gps.h
-..\obj\att_control.o: ..\HARDWARE\IIC\rng.h

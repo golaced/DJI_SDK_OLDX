@@ -763,28 +763,30 @@ void  GPS_hold1(nmea_msg *gpsx_in,float T)
 	else
 		pix_dead=0.8;
 	
+	pix_dead=1;
 	float ero_qr_pix[2];
 	static float ero_qr_pixr[2];
-		if((mode.land_by_pix&&mode.en_qr_land&&
-			((ABS(circle.x-160)<160*pix_dead&&ABS(circle.y-120)<120*pix_dead))
-		   &&state_v==SD_CIRCLE_MID_DOWN)||0)//使用图像对准
-	{
-		if(qr.check&&qr.connect){
-		ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,0)*((float)qr.z/100.);
-		ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,0)*((float)qr.z/100.);	
-		out_temp[ROLr]=ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd;
-	  out_temp[PITr]=ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd;
-		ero_qr_pixr[ROLr]=ero_qr_pix[ROLr];	
-		ero_qr_pixr[PITr]=ero_qr_pix[PITr];	
-		out_temp[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS*2,MAX_GPS*2);
-	  out_temp[PITr]=LIMIT(out_temp[PITr],-MAX_GPS*2,MAX_GPS*2);
+		if(mode.land_by_pix&&mode.en_qr_land&&state_v==SD_CIRCLE_MID_DOWN){
+			  if((ABS(circle.x-160)<160*pix_dead&&ABS(circle.y-120)<120*pix_dead))
+		    {
+						if(qr.check&&qr.connect){
+						ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,0)*((float)qr.z/100.);
+						ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,0)*((float)qr.z/100.);	
+						out_temp[ROLr]=ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd;
+						out_temp[PITr]=ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd;
+						ero_qr_pixr[ROLr]=ero_qr_pix[ROLr];	
+						ero_qr_pixr[PITr]=ero_qr_pix[PITr];	
+						out_temp[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS*2,MAX_GPS*2);
+						out_temp[PITr]=LIMIT(out_temp[PITr],-MAX_GPS*2,MAX_GPS*2);
+						}
+						else
+						{
+						out_temp[ROLr]=out_temp[PITr]=0;	
+						ero_qr_pixr[ROLr]=ero_qr_pixr[PITr]=0;				
+						}			
+				}	
 		}
-		else
-		{
-		ero_qr_pixr[ROLr]=0;	
-		ero_qr_pixr[PITr]=0;		
-		}		
-	}
+	
 	
 	//0  ROL  1 PIT
 	if(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'){//????

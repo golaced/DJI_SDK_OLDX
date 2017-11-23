@@ -249,3 +249,44 @@ UsartSend_M100(mode);//01001010 flag???
 UsartSend_M100(0xFE);	
 
 }
+
+static void Send_Data_M100(u8 *dataToSend , u8 length)
+{
+u16 i;
+  for(i=0;i<length;i++)
+     UsartSend_M100(dataToSend[i]);
+}
+
+
+void px4_control_publish(float x,float y,float z,float yaw,u8 mode)
+{
+  u8 i;	u8 sum = 0;
+	u8 data_to_send[50];
+	u8 _cnt=0;
+	vs16 _temp;
+  data_to_send[_cnt++]=0xAA;
+	data_to_send[_cnt++]=0xAF;
+	data_to_send[_cnt++]=0x04;//功能字
+	data_to_send[_cnt++]=0;//数据量
+	
+	_temp = mode;
+	data_to_send[_cnt++]=BYTE0(_temp);
+	_temp = (vs16)(x*1000);
+	data_to_send[_cnt++]=BYTE1(_temp);
+	data_to_send[_cnt++]=BYTE0(_temp);
+	_temp = (vs16)(y*1000);
+	data_to_send[_cnt++]=BYTE1(_temp);
+	data_to_send[_cnt++]=BYTE0(_temp);
+	_temp = (vs16)(z*1000);
+	data_to_send[_cnt++]=BYTE1(_temp);
+	data_to_send[_cnt++]=BYTE0(_temp);
+	_temp = (vs16)(yaw*100);
+	data_to_send[_cnt++]=BYTE1(_temp);
+	data_to_send[_cnt++]=BYTE0(_temp);
+	data_to_send[3] = _cnt-4;
+
+	for( i=0;i<_cnt;i++)
+		sum += data_to_send[i];
+	data_to_send[_cnt++] = sum;
+	Send_Data_M100(data_to_send, _cnt);
+}

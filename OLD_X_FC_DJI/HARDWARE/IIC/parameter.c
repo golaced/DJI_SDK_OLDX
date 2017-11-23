@@ -92,7 +92,6 @@ static void  Param_SetSettingToFC(void) //fly thr 45% at 4s full 4.4Ah
 void Para_Init()
 {
 	Param_SetSettingToFC();
-	Ctrl_Para_Init();
 	Ultra_PID_Init();
 }
 

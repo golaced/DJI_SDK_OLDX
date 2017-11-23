@@ -527,7 +527,7 @@ u8 m100_data_refresh;
 		sum += *(data_buf+i);
 	if(!(sum==*(data_buf+num-1)))		return;		//≈–∂œsum
 	if(!(*(data_buf)==0xAA && *(data_buf+1)==0xAF))		return;		//≈–∂œ÷°Õ∑
-  if(*(data_buf+2)==0x01)//
+  if(*(data_buf+2)==0x01||*(data_buf+2)==0x04)//
   { dji_miss_cnt=0;
 		DJI_CONNECT=1;
 		flag=!flag;
@@ -560,7 +560,7 @@ u8 m100_data_refresh;
 		m100.Rc_pit=(float)((int16_t)(*(data_buf+28)<<8)|*(data_buf+29));
 		m100.Rc_rol=(float)((int16_t)(*(data_buf+30)<<8)|*(data_buf+31));
 		m100.Rc_yaw=(float)((int16_t)(*(data_buf+32)<<8)|*(data_buf+33));
-		m100.Rc_thr=(float)((int16_t)(*(data_buf+34)<<8)|*(data_buf+45));
+		m100.Rc_thr=(float)((int16_t)(*(data_buf+34)<<8)|*(data_buf+35));
 		m100.Rc_mode=(float)((int16_t)(*(data_buf+36)<<8)|*(data_buf+37));
 		m100.Rc_gear=(float)((int16_t)(*(data_buf+38)<<8)|*(data_buf+39));
 		m100.STATUS=*(data_buf+40);		

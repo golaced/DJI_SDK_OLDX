@@ -18,14 +18,9 @@
 
 #define EXP_Z_SPEED  ( 0.4f *my_deathzoom( (thr-500), 50 ) )
 float exp_spd_zv,thr_use,thr_in_view;
-_st_height_pid_v wz_speed_pid_v;
-_st_height_pid_v wz_speed_pid_v_safe;
-_st_height_pid_v wz_speed_pid_v_eso;
+_st_height_pid_v ultra_ctrl,ultra_ctrl_head;
+_st_height_pid ultra_pid,ultra_pid_head;
 
-_st_height_pid_v ultra_ctrl,ultra_ctrl_safe,ultra_ctrl_head;
-
-_st_height_pid wz_speed_pid,wz_speed_pid_safe;
-_st_height_pid ultra_pid_safe,ultra_pid,ultra_pid_head;
 #define high_data_sel 0//高度数据选择0-> bmp from m100
 #define OFF_HEIGHT_ALL 3500
 #define MAX_HEIGH_ERO 800  //check
@@ -195,26 +190,11 @@ void Height_Ctrl(float T,float thr)
 			{
 	      out_timer_high=Get_Cycle_T(GET_T_HIGH_CONTROL_O);
 				cnt_100ms=0;
-
 				Ultra_Ctrl(out_timer_high,thr_use);//超声波周期100ms
 				Ultra_Ctrl_Front(out_timer_high,thr_use);
-				//Ultra_Ctrl_Safe(0.1f,thr);//超声波周期100ms
 				ultra_start_f = -1;
 			}
-		}
-
-			if(height_ctrl_mode_use)//定高模式
-		{	
-			if(mode.height_safe)
-			height_ctrl_out =  wz_speed_pid_v_safe.pid_out;//LIMIT(thr-50*LIMIT(Moving_Median(9,5,wz_acc_ukf)/4096,-0.2,0.2)*9.8,0,500);	
-			else
-			height_ctrl_out = wz_speed_pid_v.pid_out;
-		}
-		else//手动模式
-		{		
-		  	height_ctrl_out = thr-50*LIMIT(wz_acc_ukf/4096,-0.2,0.2)*9.8;   
-		}
-		
+		}	
 		break; //case 1
 		
 		default: break;
@@ -253,12 +233,6 @@ else
   exp_height_shoot_off=0;	
 	static float off_m100;
 
-	//模式转换初始化
-	if(mode_change){mode_change=0;
-	//exp_height=ALT_POS_SONAR2*1000;
-	Flow_reset_pos();
-	}	
-	
   static float sonar_ground;
 	if(state_v==SG_LOW_CHECK)
 	{off_m100=m100.H;
@@ -266,12 +240,15 @@ else
 	}
 	
 	if(high_data_sel||m100.refresh==0)
-	ultra_dis_tmp=  ALT_POS_SONAR2*1000;
+	ultra_dis_lpf=ultra_dis_tmp=ALT_POS_SONAR2*1000;
 	else
-	ultra_dis_tmp=  LIMIT(m100.H-off_m100+sonar_ground,0,20)*1000;	
-		
-
-	ultra_dis_lpf=  ultra_dis_tmp;
+	ultra_dis_lpf=ultra_dis_tmp=LIMIT(m100.H-off_m100+sonar_ground,0,20)*1000;	
+	
+	//模式转换初始化
+	if(mode_change){mode_change=0;
+	exp_height=ultra_dis_lpf;
+	Flow_reset_pos();
+	}	
 		
 	if(ultra_pid.ki==0||((Rc_Pwm_Inr_mine[RC_THR]<200+1000))||Rc_Pwm_Inr_mine[RC_THR]<450+1000||Rc_Pwm_Inr_mine[RC_THR]>550+1000||pwmin.sel==0)ultra_ctrl.err_i=0;
 

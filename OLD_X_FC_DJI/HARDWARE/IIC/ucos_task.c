@@ -300,7 +300,7 @@ void inner_task(void *pdata)
 	}
 	else if(en_track&&track.check&&circle.connect&&(state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
 	float ero[2],ero2[2],ero3[2],ero4[2];
-  static float ero_r[2],ero_r2[2],ero_r3[2];
+  static float ero_r[2],ero_r2[2],ero_r3[2];//pitch
   ero[0]=my_deathzoom_2(-circle.y+120,30);//,0.5,(float)68/1200);
 	ero2[0]=my_deathzoom_2(-circle.y+120,20);//,0.5,(float)68/1200);
 	ero3[0]=my_deathzoom_2(-circle.y+120,10);//,0.5,(float)68/1200);	
@@ -315,7 +315,7 @@ void inner_task(void *pdata)
   ero_r2[0]=	(-circle.y+120-ero_r[0])*dt_flt+(1-dt_flt)*ero_r3[0]	;
   ero_r3[0]=ero_r2[0];
 	ero_r[0]=-circle.y+120;
-//-------------------------------------------------------------------//
+//------------------------------------------------yaw-----------------//
 	ero[1]=my_deathzoom_2(circle.x-160,35);//,0.5,(float)68/1200);
 	ero2[1]=my_deathzoom_2(circle.x-160,25);//,0.5,(float)68/1200);
 	ero3[1]=my_deathzoom_2(circle.x-160,15);//,0.5,(float)68/1200);	
@@ -648,14 +648,24 @@ OS_STK M100_TASK_STK[M100_STK_SIZE];
 u8 en_vrc;
 u8 m100_control_mode = 0x4A;
 float k_m100[5]={1,1,1,1,1};//pit rol thr yaw avoid
+float k_px4[4]={0.6,0.6,0.6,1.5};
+float tar_px4[4]={0};
 void m100_task(void *pdata)
 {		
 	static u8 cnt_m100;
-		static u8 en_vrcr,flag1;
+	static u8 en_vrcr,flag1;
 	static int m100_Rc_gr;
 	
 		while(1)
 	{
+	#if USE_PX4
+	tar_px4[0]=(Rc_Pwm_Out_mine_USE[1]-1500)*k_px4[0];
+	tar_px4[1]=(Rc_Pwm_Out_mine_USE[0]-1500)*k_px4[1];
+	tar_px4[2]=(Rc_Pwm_Out_mine_USE[2]-1500)*k_px4[2];
+	tar_px4[3]=(Rc_Pwm_Out_mine_USE[3]-1500)*k_px4[3];
+  //px4_control_publish(tar_px4[0],tar_px4[1],tar_px4[2],tar_px4[3],m100_control_mode);
+  px4_control_publish(1600,Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);	
+  #else		
 	if(cnt_m100++>2-1){cnt_m100=0;
 	m100_data(0);
 	
@@ -692,6 +702,8 @@ void m100_task(void *pdata)
 	if(dji_rst)
 		m100_rst(10);
 	}
+	#endif
+	
 	delay_ms(5);
 	}
 }

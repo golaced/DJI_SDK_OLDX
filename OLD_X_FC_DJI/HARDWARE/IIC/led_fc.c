@@ -14,12 +14,22 @@ void LED_Init()
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
+	#if USE_VER_FINAL
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7;
+	#else
 	GPIO_InitStructure.GPIO_Pin   = ANO_Pin_LED1| ANO_Pin_LED2| ANO_Pin_LED3;
+	#endif
 	GPIO_Init(ANO_GPIO_LED, &GPIO_InitStructure);
-	
-	
+
+  #if USE_VER_FINAL	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
+	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5|GPIO_Pin_6;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	#endif
 	 //SEL
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD,ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD|RCC_AHB1Periph_GPIOA,ENABLE);
 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -43,6 +53,29 @@ void LED_Init()
 
 void LEDRGB(u8 sel,u8 on)
 {
+#if USE_VER_FINAL
+switch(sel)
+{
+case RED:
+if(!on)
+GPIO_ResetBits(GPIOC,GPIO_Pin_7);
+else
+GPIO_SetBits(GPIOC,GPIO_Pin_7);
+break;
+case GREEN:
+if(!on)
+GPIO_ResetBits(GPIOA,GPIO_Pin_5);
+else
+GPIO_SetBits(GPIOA,GPIO_Pin_5);
+break;
+case BLUE:
+if(!on)
+GPIO_ResetBits(GPIOA,GPIO_Pin_6);
+else
+GPIO_SetBits(GPIOA,GPIO_Pin_6);
+break;
+}
+#else	
 switch(sel)
 {
 case RED:
@@ -70,6 +103,7 @@ else
 GPIO_SetBits(GPIOC,GPIO_Pin_1);
 break;
 }
+#endif
 }
 u8 LED[3]={0};
 void LEDRGB_COLOR(u8 color)

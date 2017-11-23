@@ -296,7 +296,7 @@ void ANO_DT_Data_Exchange(void)
 											0,0,0,
 											ctrl_2.PID[PIDYAW].kp,ctrl_2.PID[PIDYAW].ki,ctrl_2.PID[PIDYAW].kd);}
 	 else if(sel[3]==2){sel[3]=3;//H spd       H   pos     Pos spd
-	  ANO_DT_Send_PID(3,wz_speed_pid.kp,wz_speed_pid.ki,wz_speed_pid.kd,
+	  ANO_DT_Send_PID(3,0,0,0,
 											ultra_pid.kp,ultra_pid.ki,ultra_pid.kd,
 											0,0,0);
 	  }
@@ -312,7 +312,7 @@ void ANO_DT_Data_Exchange(void)
 		}
 		else {sel[3]=0;		
 		ANO_DT_Send_PID(6,(float)KEY[2]/1000.,(float)KEY[3]/1000.,(float)YUN_PER_OFF/1000.,
-											track.control_yaw_pix,0,0,
+											track.control_yaw_pix,qr_pid.kp,qr_pid.kd,
 											0,0,(float)tar_need_to_check_odroid[2]/1000.);
 		f.send_pid1=0;
 		}
@@ -489,9 +489,9 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
     }
     if(*(data_buf+2)==0X12)								//PID3 height
     {	
-        wz_speed_pid.kp  = 0.001*( (vs16)(*(data_buf+4)<<8)|*(data_buf+5) );
-        wz_speed_pid.ki  = 0.001*( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
-        wz_speed_pid.kd  = 0.001*( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
+//        wz_speed_pid.kp  = 0.001*( (vs16)(*(data_buf+4)<<8)|*(data_buf+5) );
+//        wz_speed_pid.ki  = 0.001*( (vs16)(*(data_buf+6)<<8)|*(data_buf+7) );
+//        wz_speed_pid.kd  = 0.001*( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
 			
         ultra_pid.kp = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
         ultra_pid.ki = 0.001*( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
@@ -554,8 +554,8 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
   		YUN_PER_OFF=( (vs16)(*(data_buf+8)<<8)|*(data_buf+9) );
 	
       track.control_yaw_pix = 0.001*( (vs16)(*(data_buf+10)<<8)|*(data_buf+11) );
-//		k_sensitivity[1] = 0.001*( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
-//		k_sensitivity[2] = 0.001*( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
+			qr_pid.kp = 0.001*( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
+			qr_pid.kd = 0.001*( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 //		
 //		robot_land.k_f					 = 0.001*( (vs16)(*(data_buf+17)<<8)|*(data_buf+16) );
 //		LENGTH_OF_DRONE=    ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
