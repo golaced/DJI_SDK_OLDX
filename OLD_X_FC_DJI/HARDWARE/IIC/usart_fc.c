@@ -527,7 +527,50 @@ u8 m100_data_refresh;
 		sum += *(data_buf+i);
 	if(!(sum==*(data_buf+num-1)))		return;		//≈–∂œsum
 	if(!(*(data_buf)==0xAA && *(data_buf+1)==0xAF))		return;		//≈–∂œ÷°Õ∑
-  if(*(data_buf+2)==0x01||*(data_buf+2)==0x04)//
+	#if USE_PX4
+  if(*(data_buf+2)==0x04)//Px4
+  { dji_miss_cnt=0;
+		DJI_CONNECT=1;
+		flag=!flag;
+		LEDRGB(12,flag);
+	  m100.Pit=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5))/10.;
+		m100.Rol=(float)((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/10.;
+		m100.Yaw=(float)((int16_t)(*(data_buf+8)<<8)|*(data_buf+9))/10.;
+		m100.H=(float)((int16_t)(*(data_buf+10)<<8)|*(data_buf+11))/1000.;
+		
+		if(m100.H!=m100_hr||m100_attr[0]!=m100.Pit||m100_attr[1]!=m100.Rol||m100_attr[2]!=m100.Yaw)
+		{cnt_m100_data_refresh=0;
+		 m100_data_refresh=1;
+		}
+		m100.refresh=m100_data_refresh;
+		m100_hr=m100.H;
+		m100_attr[0]=m100.Pit;
+		m100_attr[1]=m100.Rol;
+		m100_attr[2]=m100.Yaw;
+		
+		ultra_distance=(float)((int16_t)(*(data_buf+12)<<8)|*(data_buf+13));
+		zen=(*(data_buf+14)<<8)|*(data_buf+15);
+		xiao=(double)((u32)(*(data_buf+16)<<24)|(*(data_buf+17)<<16)|(*(data_buf+18)<<8)|*(data_buf+19))/1000000000.;
+		m100.Lat=zen+xiao;
+		zen=(*(data_buf+20)<<8)|*(data_buf+21);
+		xiao=(double)((u32)(*(data_buf+22)<<24)|(*(data_buf+23)<<16)|(*(data_buf+24)<<8)|*(data_buf+25))/1000000000.;
+		m100.Lon=zen+xiao;
+		
+		m100.Bat=(float)((int16_t)(*(data_buf+26)<<8)|*(data_buf+27))/100.;
+		m100.Rc_pit=(float)((int16_t)(*(data_buf+28)<<8)|*(data_buf+29));
+		m100.Rc_rol=(float)((int16_t)(*(data_buf+30)<<8)|*(data_buf+31));
+		m100.Rc_yaw=(float)((int16_t)(*(data_buf+32)<<8)|*(data_buf+33));
+		m100.Rc_thr=(float)((int16_t)(*(data_buf+34)<<8)|*(data_buf+35));
+		m100.Rc_mode=(float)((int16_t)(*(data_buf+36)<<8)|*(data_buf+37));
+		m100.Rc_gear=(float)((int16_t)(*(data_buf+38)<<8)|*(data_buf+39));
+		m100.STATUS=*(data_buf+40);		
+		m100.GPS_STATUS=*(data_buf+41);
+		m100.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
+		m100.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
+		m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
+	}
+	#else
+	if(*(data_buf+2)==0x01)//
   { dji_miss_cnt=0;
 		DJI_CONNECT=1;
 		flag=!flag;
@@ -535,7 +578,6 @@ u8 m100_data_refresh;
 	  m100.Pit=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5))/10.;
 		m100.Rol=(float)((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/10.;
 		m100.Yaw=-1*(float)((int16_t)(*(data_buf+8)<<8)|*(data_buf+9))/10.;
-		
 		m100.H=(float)((int16_t)(*(data_buf+10)<<8)|*(data_buf+11))/1000.;
 		
 		if(m100.H!=m100_hr||m100_attr[0]!=m100.Pit||m100_attr[1]!=m100.Rol||m100_attr[2]!=m100.Yaw)
@@ -568,7 +610,8 @@ u8 m100_data_refresh;
 		m100.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
 		m100.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
 		m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
-	}			
+	} 
+  #endif	
 }
 
 //  NRF board ??
@@ -591,10 +634,10 @@ void Data_Receive_Anl4(u8 *data_buf,u8 num)
   if(*(data_buf+2)==0x03)//RC_PWM
   { rc_board_connect=1;
 		rc_board_connect_lose_cnt=0;
-		Rc_Get_PWM.PITCH=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
-		Rc_Get_PWM.ROLL=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7));
+		Rc_Get_PWM.PITCH1=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
+		Rc_Get_PWM.ROLL1=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7));
 		Rc_Get_PWM.THROTTLE=((int16_t)(*(data_buf+8)<<8)|*(data_buf+9));
-		Rc_Get_PWM.YAW=((int16_t)(*(data_buf+10)<<8)|*(data_buf+11));
+		Rc_Get_PWM.YAW1=((int16_t)(*(data_buf+10)<<8)|*(data_buf+11));
 		
 		Rc_Get_PWM.AUX1=((int16_t)(*(data_buf+12)<<8)|*(data_buf+13));
 		Rc_Get_PWM.AUX2=((int16_t)(*(data_buf+14)<<8)|*(data_buf+15));

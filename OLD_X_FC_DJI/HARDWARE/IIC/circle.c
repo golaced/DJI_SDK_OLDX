@@ -261,11 +261,17 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	gps_local_cor_zero[1]=check_way_point[1];
 		
 	#if USE_M100
-	 
+	 #if USE_PX4
+	 if(Rc_Pwm_Inr_mine[RC_PITCH]>1800&&Rc_Pwm_Inr_mine[RC_ROLL]>1800&&Rc_Pwm_Inr_mine[RC_YAW]<1200&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
+		 set_point1=1;
+	 else if(ABS((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500)<50&&ABS((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500)<50&&ABS((float)Rc_Pwm_Inr_mine[RC_YAW]-1500)<50)
+		 set_point1=0;
+	 #else
 	 if(m100.Rc_pit>9000&m100.Rc_rol>9000&&m100.Rc_yaw<-9000&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
 		 set_point1=1;
 	 else if(ABS(m100.Rc_pit)<1500&&ABS(m100.Rc_rol)<1500&&ABS(m100.Rc_yaw)<1500)
 		 set_point1=0;
+	 #endif
 	 lon = m100.Lon;
 	 lat = m100.Lat;
 	 if(m100.STATUS>0&&m100.Lat!=0&&m100.Lon!=0&&!dji_rst_protect)
@@ -359,9 +365,10 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
   navUkfSetHereAsPositionTarget();	
 	float y[3];
 
-	
+	#if !defined(DEBUG_HOVER_GPS)
 	if(mode.en_gps)//返航测试
 	navUkfSetLocalPositionTarget( tar_point_globle[0], tar_point_globle[1]);//设置期望GPS位置	
+	#endif
 	if(tar_pos_gps[0]!=0||tar_pos_gps[1]!=0) 
 	navUkfSetHereAsPositionTarget();
 	
@@ -413,8 +420,8 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	
 // 导航控制误差计算
-  y[North]=drone_local_pos[North]-tar_drone_local_pos[North];
-  y[East]= drone_local_pos[East] -tar_drone_local_pos[East];
+//  y[North]=drone_local_pos[North]-tar_drone_local_pos[North];
+//  y[East]= drone_local_pos[East] -tar_drone_local_pos[East];
 	
   float yaw_use;
   #if USE_M100

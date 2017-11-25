@@ -53,11 +53,11 @@ static u8 check_num_mpu,check_num_hml;
 	switch (state_mpu)
 	{
 		case 0:
-			 if(Rc_Get.YAW-1500>200&&!mode.cal_sel)
+			 if(Rc_Get.YAW1-1500>200&&!mode.cal_sel)
 				  state_mpu=1;
 			 break;
 		case 1:
-			 if(Rc_Get.YAW-1500<-200&&!mode.cal_sel)
+			 if(Rc_Get.YAW1-1500<-200&&!mode.cal_sel)
 				  state_mpu=2;
 			 else if(cnt_mpu++>2000)
 			 {cnt_mpu=0;state_mpu=0;check_num_mpu=0;}
@@ -75,7 +75,7 @@ static u8 check_num_mpu,check_num_hml;
 			  mpu6050.Acc_CALIBRATE=1;}
 			  break;
 		case 2:
-			if(Rc_Get.YAW-1500>200&&!mode.cal_sel)
+			if(Rc_Get.YAW1-1500>200&&!mode.cal_sel)
 			{  state_mpu=1;check_num_mpu++;}
 			 else if(cnt_mpu++>2000)
 			 {cnt_mpu=0;state_mpu=0;check_num_mpu=0;}
@@ -94,11 +94,11 @@ if( !mpu6050.Gyro_CALIBRATE&&!fly_ready)
 switch (state_hml)
 	{
 		case 0:
-			 if(Rc_Get.YAW-1500>200&&mode.cal_sel)
+			 if(Rc_Get.YAW1-1500>200&&mode.cal_sel)
 				  state_hml=1;
 			 break;
 		case 1:
-			 if(Rc_Get.YAW-1500<-200&&mode.cal_sel)
+			 if(Rc_Get.YAW1-1500<-200&&mode.cal_sel)
 				  state_hml=2;
 			 else if(cnt_hml++>2000)
 			 {state_hml=0;cnt_hml=0;check_num_hml=0;}
@@ -114,7 +114,7 @@ switch (state_hml)
 			 }
 			  break;
 		case 2:
-			if(Rc_Get.YAW-1500>200&&mode.cal_sel)
+			if(Rc_Get.YAW1-1500>200&&mode.cal_sel)
 			{  state_hml=1;check_num_hml++;}
 			 else if(cnt_hml++>2000)
 			 {state_hml=0;cnt_hml=0;check_num_hml=0;}

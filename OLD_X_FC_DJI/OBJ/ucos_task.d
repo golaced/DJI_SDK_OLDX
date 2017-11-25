@@ -83,6 +83,7 @@
 ..\obj\ucos_task.o: ..\HARDWARE\IIC\circle.h
 ..\obj\ucos_task.o: ..\HARDWARE\IIC\gps.h
 ..\obj\ucos_task.o: ..\HARDWARE\IIC\eso.h
+..\obj\ucos_task.o: ..\HARDWARE\IIC\ms5611_spi.h
 ..\obj\ucos_task.o: ..\HARDWARE\IIC\data_transfer.h
 ..\obj\ucos_task.o: ..\HARDWARE\IIC\AttitudeEKF.h
 ..\obj\ucos_task.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

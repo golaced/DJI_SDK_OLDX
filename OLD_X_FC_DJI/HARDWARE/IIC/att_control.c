@@ -125,7 +125,11 @@ u16 AUTO_UP_CUARVE[]={1580,1660,1660,1655,1650,1650,1650,1650,1650};
 u16 AUTO_DOWN_CUARVE[]={1500,1500-50,1500-150,1500-150,1500-200,1500-200};
 u16 AUTO_DOWN_CUARVE1[]={1500-150,1500-150,1500-100,1500-100,1500-80,1500-80};
 #if USE_M100
+#if USE_PX4
+float SONAR_SET_HIGHT =0.1;
+#else
 float SONAR_SET_HIGHT =0.19599;
+#endif
 #else
 float SONAR_SET_HIGHT =0.14;
 #endif
@@ -188,7 +192,7 @@ float SHOOTING_TIME_CHECK=17.5;//射击状态图像触发次数(num)
 float T_SHOOT_CHECK=0.4;//射击检查时间(s)
 float STATE_OVER_TIME_MAX[10]={30,30};//状态超时时间
 float FORCE_LAND_TIME=8;//强制着陆时间(min)
-float FORCE_HOME_TIME=0.5;//6;//强制返航时间(min)
+float FORCE_HOME_TIME=6;//强制返航时间(min)
 #define FAKE_TAR_NUM 9
 u8 fake_target[FAKE_TAR_NUM]={8,7,6,5,4,3,2,1,0};
 u8 fake_target_force=0;

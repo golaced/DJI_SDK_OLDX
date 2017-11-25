@@ -14,6 +14,8 @@
 #include "circle.h"
 #include "rng.h"
 #include "AttitudeEKF.h"
+#include "mpu9250.h"
+#include "ms5611_spi.h"
  /////////////////////////UCOSII启动任务设置///////////////////////////////////
 //START 任务
 //设置任务优先级
@@ -33,9 +35,19 @@ OS_FLAG_GRP * flags_key;	//按键信号量集
 void * MsgGrp[256];			//消息队列存储地址,最大支持256个消息
 u8 en_read=1;
 int main(void)
-{ 
+ { 
 	NVIC_PriorityGroupConfig(NVIC_GROUP);//设置系统中断优先级分组2
+	SysTick_Configuration();
 	delay_init(168);  //初始化延时函数
+	#if USE_VER_FINAL
+//	SPI2_Init1();
+//	Delay_ms(100);
+//	Mpu9250_Init();
+//	Delay_ms(100);
+//	Mpu9250_Init();
+//	ms5611DetectSpi();
+	#endif 
+	 
 	pwmin.max=1500;
 	pwmin.min=0;
 	pwmin.T=3500;
@@ -54,19 +66,25 @@ int main(void)
 	SHOOT_Init();
 	Initial_Timer_SYS();
 	Delay_ms(100);
-  I2c_Soft_Init();					//初始化模拟I2C
+	I2c_Soft_Init();					//初始化模拟I2C
+	#if !USE_VER_FINAL
 	Delay_ms(100);
 	MS5611_Init();						//气压计初始化
 	Delay_ms(100);						//延时
 	MPU6050_Init(5);   			//加速度计、陀螺仪初始化，配置20hz低通
 	Delay_ms(100);
 	MS5611_Init();						//气压计初始化
+	#endif
 	altUkfInit();
 	LED_Init();								//LED功能初始化
 	RNG_Init();
 	Delay_ms(100);
 //------------------------Uart Init-------------------------------------
+  #if USE_PX4
+	Usart1_Init(115200L);			//UP_LINK
+	#else
 	Usart1_Init(38400L);			//UP_LINK
+	#endif
 	#if EN_DMA_UART1 
 	MYDMA_Config(DMA2_Stream7,DMA_Channel_4,(u32)&USART1->DR,(u32)SendBuff1,SEND_BUF_SIZE1+2,1);//DMA2,STEAM7,CH4,外设为串口1,存储器为SendBuff,长度为:SEND_BUF_SIZE.
 	#endif
@@ -190,6 +208,7 @@ int main(void)
 	MYDMA_Enable(DMA2_Stream7,SEND_BUF_SIZE1+2);     //开始一次DMA传输！	 
 #endif	
 	Delay_ms(100);
+
 
 	OSInit();  	 				
 	OSTaskCreate(start_task,(void *)0,(OS_STK *)&START_TASK_STK[START_STK_SIZE-1],START_TASK_PRIO );//创建起始任务

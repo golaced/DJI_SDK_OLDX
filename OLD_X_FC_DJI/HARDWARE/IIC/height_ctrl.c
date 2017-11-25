@@ -22,7 +22,7 @@ _st_height_pid_v ultra_ctrl,ultra_ctrl_head;
 _st_height_pid ultra_pid,ultra_pid_head;
 
 #define high_data_sel 0//高度数据选择0-> bmp from m100
-#define OFF_HEIGHT_ALL 3500
+#define OFF_HEIGHT_ALL 1000
 #define MAX_HEIGH_ERO 800  //check
 float exp_height_speed;
 float exp_height=1200+OFF_HEIGHT_ALL,exp_height_check=1366+OFF_HEIGHT_ALL,//1466,//

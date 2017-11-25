@@ -17,16 +17,22 @@
 #include "eso.h"
 #include "gps.h"
 #include "m100.h"
+#include "ms5611_spi.h"
 #include "data_transfer.h"
 //==============================传感器 任务函数==========================
 OS_STK MEMS_TASK_STK[MEMS_STK_SIZE];
 void mems_task(void *pdata)
-{		static u8 cnt,cnt1;						 
+{	
+	static u8 cnt,cnt1;						 
  	while(1)
 	{
-	MPU6050_Read(); 															//读取mpu6轴传感器
-	MPU6050_Data_Prepare( 0.005 );			//mpu6轴传感器数据处理
-	MS5611_ThreadNew();
+//	MPU6050_Read(); 		
+//	MPU6050_Data_Prepare( 0.005 );			//mpu6轴传感器数据处理	
+//	#if USE_VER_FINAL
+//	MS5611_ThreadNew_SPI();baroAlt=ms5611Alt*1000;MS5611_Pressure=ms5611Press;
+//	#else
+//	MS5611_ThreadNew();
+//	#endif
 	delay_ms(5);
 	}
 }		
@@ -120,13 +126,21 @@ void inner_task(void *pdata)
 	//------------------------------介入控制初始化---------------------------------------------------
 	
 	#if USE_M100
+	#if USE_PX4	
+	Rc_Pwm_Inr_mine[RC_PITCH]=(float)LIMIT((m100.Rc_pit-1514)*1.46,-500,500)/1.*1+1500;	
+	Rc_Pwm_Inr_mine[RC_ROLL] =-(float)LIMIT((m100.Rc_rol-1514)*1.46,-500,500)/1.*1+1500;	
+	Rc_Pwm_Inr_mine[RC_YAW]=  -(float)LIMIT((m100.Rc_yaw-1514)*1.46,-500,500)/1.*1+1500;	
+	Rc_Pwm_Inr_mine[RC_THR]=  (float)LIMIT((m100.Rc_thr-1514)*1.46,-500,500)/1.*1+1500;	
+	Rc_Pwm_Inr_mine[RC_MODE]= (float)LIMIT((m100.Rc_mode-1514)*1.46,-500,500)/1.*1+1500;	
+	Rc_Pwm_Inr_mine[RC_GEAR]= (float)LIMIT((m100.Rc_gear-1514)*1.46,-500,500)/1.*1+1500;	
+	#else
 	Rc_Pwm_Inr_mine[RC_PITCH]=(float)LIMIT(m100.Rc_pit,-10000,10000)/10000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_ROLL] =(float)LIMIT(m100.Rc_rol,-10000,10000)/10000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_YAW]=  (float)LIMIT(m100.Rc_yaw,-10000,10000)/10000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_THR]=  (float)LIMIT(m100.Rc_thr,-10000,10000)/10000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_MODE]= (float)LIMIT(m100.Rc_mode,-10000,10000)/8000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_GEAR]= (float)LIMIT(m100.Rc_gear,-10000,10000)/10000.*500+1500;	
-	
+	#endif
 	for(i=0;i<8;i++){	
 	if(Rc_Pwm_Inr_mine[i]<=pwmin.max+200&&Rc_Pwm_Inr_mine[i]>=pwmin.min-200&&i!=RC_THR)
 	Rc_Pwm_Out_mine[i]=0.5*Rc_Pwm_Out_mine[i]+0.5*Rc_Pwm_Inr_mine[i];
@@ -267,10 +281,10 @@ void inner_task(void *pdata)
 	}	
 	else if(mode.dj_by_hand){
 
-	if(Rc_Get.ROLL>1000)
-	PWM_DJ[0]+=-dj_k*my_deathzoom(Rc_Get.ROLL-1500,80)*flag_yun[0];
-	if(Rc_Get.PITCH>1000)
-	PWM_DJ[1]+=-dj_k*my_deathzoom(Rc_Get.PITCH-1500,80)*flag_yun[1];	
+	if(Rc_Get.ROLL1>1000)
+	PWM_DJ[0]+=-dj_k*my_deathzoom(Rc_Get.ROLL1-1500,80)*flag_yun[0];
+	if(Rc_Get.PITCH1>1000)
+	PWM_DJ[1]+=-dj_k*my_deathzoom(Rc_Get.PITCH1-1500,80)*flag_yun[1];	
 
 	}
 	else if(state_v==SU_CHECK_TAR)//下降对圆 垂直云台
@@ -461,11 +475,16 @@ void outer_task(void *pdata)
 	{	
 	outer_loop_time = Get_Cycle_T(GET_T_OUTTER);								//获取外环准确的执行周期
 	/*IMU更新姿态。输入：半个执行周期，三轴陀螺仪数据（转换到度每秒），三轴加速度计数据（4096--1G）；输出：ROLPITYAW姿态角*/
- 	IMUupdate(0.5f *outer_loop_time,mpu6050.Gyro_deg.x, mpu6050.Gyro_deg.y, mpu6050.Gyro_deg.z, mpu6050.Acc.x, mpu6050.Acc.y, mpu6050.Acc.z,&Roll_R,&Pitch_R,&Yaw_R);		
-  Pitch=Pitch_R;
+ 	#if !USE_PX4
+	IMUupdate(0.5f *outer_loop_time,mpu6050.Gyro_deg.x, mpu6050.Gyro_deg.y, mpu6050.Gyro_deg.z, mpu6050.Acc.x, mpu6050.Acc.y, mpu6050.Acc.z,&Roll_R,&Pitch_R,&Yaw_R);		
+	Pitch=Pitch_R;
 	Roll=Roll_R;	
 	Yaw=Yaw_R;	
-
+  #else
+	Pitch=m100.Pit;
+	Roll=m100.Rol;	
+	Yaw=m100.Yaw;		
+	#endif
 	#if USE_M100
 	if(cnt2++>4-1){
 	#else
@@ -648,8 +667,10 @@ OS_STK M100_TASK_STK[M100_STK_SIZE];
 u8 en_vrc;
 u8 m100_control_mode = 0x4A;
 float k_m100[5]={1,1,1,1,1};//pit rol thr yaw avoid
-float k_px4[4]={0.6,0.6,0.6,1.5};
+float k_px4[4]={0.008,0.008,0.008,2};
+float k_px4_rc[4]={0.008,0.008,0.005,2};
 float tar_px4[4]={0};
+float tar_px4_rc[4]={0};
 void m100_task(void *pdata)
 {		
 	static u8 cnt_m100;
@@ -659,12 +680,24 @@ void m100_task(void *pdata)
 		while(1)
 	{
 	#if USE_PX4
-	tar_px4[0]=(Rc_Pwm_Out_mine_USE[1]-1500)*k_px4[0];
-	tar_px4[1]=(Rc_Pwm_Out_mine_USE[0]-1500)*k_px4[1];
-	tar_px4[2]=(Rc_Pwm_Out_mine_USE[2]-1500)*k_px4[2];
-	tar_px4[3]=(Rc_Pwm_Out_mine_USE[3]-1500)*k_px4[3];
-  //px4_control_publish(tar_px4[0],tar_px4[1],tar_px4[2],tar_px4[3],m100_control_mode);
-  px4_control_publish(1600,Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);	
+	tar_px4[0]=((float)Rc_Pwm_Out_mine_USE[RC_ROLL]-1500)*k_px4[0];
+	tar_px4[1]=((float)Rc_Pwm_Out_mine_USE[RC_PITCH]-1500)*k_px4[1];
+	tar_px4[2]=((float)Rc_Pwm_Out_mine_USE[RC_THR]-1500)*k_px4[2];
+	tar_px4[3]=((float)Rc_Pwm_Out_mine_USE[RC_YAW]-1500)*k_px4[3];
+	tar_px4_rc[0]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500,15))*k_px4_rc[0];
+	tar_px4_rc[1]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500,15))*k_px4_rc[1];
+	tar_px4_rc[2]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_THR]-1500,15))*k_px4_rc[2];
+	tar_px4_rc[3]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_YAW]-1500,15))*k_px4_rc[3];
+	if(m100.Rc_gear>1600)//&&ALT_POS_SONAR2>0.32666)
+	en_vrc=1;
+	else
+	en_vrc=0;
+	if(en_vrc&&m100.Rc_mode>1600)
+	{  
+  px4_control_publish(tar_px4[0]*1,tar_px4[1]*1,tar_px4[2],tar_px4[3],m100_control_mode);
+  //px4_control_publish(1,0,0,0,m100_control_mode);
+  }else
+	px4_control_publish(tar_px4_rc[0],tar_px4_rc[1],tar_px4_rc[2],tar_px4_rc[3],m100_control_mode);
   #else		
 	if(cnt_m100++>2-1){cnt_m100=0;
 	m100_data(0);
@@ -710,7 +743,7 @@ void m100_task(void *pdata)
 
 //=======================串口 任务函数===========================
 OS_STK  UART_TASK_STK[UART_STK_SIZE];
-u8 UART_UP_LOAD_SEL=5;//<------------------------------UART UPLOAD DATA SEL
+u8 UART_UP_LOAD_SEL=6;//<------------------------------UART UPLOAD DATA SEL
 u8 UART_UP_LOAD_SEL_FORCE;
 u8 state_v_test=0;
 u8 num_need_to_check;
@@ -796,7 +829,13 @@ void uart_task(void *pdata)
 											exp_height,ultra_dis_lpf,0,
 											exp_height_head,ALT_POS_SONAR_HEAD*1000,PWM_DJ[2],  
 											Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],
-											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;													
+											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;	
+											case 6:
+											data_per_uart1(
+											nav_Data.gps_ero_dis_lpf[0]/10,nav_Data.gps_ero_dis_lpf[1]/10,m100.spd[0]*100,
+											drone_local_pos[North]*100,drone_local_pos[East]*100,m100.spd[1]*100,
+											m100.H*100,m100.spd[2]*100,0,
+											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;														
 											default:break;
 											
 											}

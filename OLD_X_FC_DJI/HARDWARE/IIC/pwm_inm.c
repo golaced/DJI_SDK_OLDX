@@ -528,12 +528,17 @@ SEL_PWM(pwmin.sel);
 }
 
 #if USE_M100
-	if(m100.Rc_gear<-9000)
-  //if(Rc_Pwm_In_mine[4]<1500)
+  #if USE_PX4
+	if(m100.Rc_gear>1600)
 		pwmin.sel_in=1;
 	else
 		pwmin.sel_in=0;
-
+  #else
+	if(m100.Rc_gear<-9000)
+		pwmin.sel_in=1;
+	else
+		pwmin.sel_in=0;
+  #endif
 #else
 	if(Rc_Pwm_Inr_mine[7]<2070+DEAD_PWM&&Rc_Pwm_Inr_mine[7]>2070-DEAD_PWM)
   //if(Rc_Pwm_In_mine[4]<1500)

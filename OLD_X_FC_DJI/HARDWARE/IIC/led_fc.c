@@ -56,19 +56,19 @@ void LEDRGB(u8 sel,u8 on)
 #if USE_VER_FINAL
 switch(sel)
 {
-case RED:
+case BLUE:
 if(!on)
 GPIO_ResetBits(GPIOC,GPIO_Pin_7);
 else
 GPIO_SetBits(GPIOC,GPIO_Pin_7);
 break;
-case GREEN:
+case RED:
 if(!on)
 GPIO_ResetBits(GPIOA,GPIO_Pin_5);
 else
 GPIO_SetBits(GPIOA,GPIO_Pin_5);
 break;
-case BLUE:
+case GREEN:
 if(!on)
 GPIO_ResetBits(GPIOA,GPIO_Pin_6);
 else

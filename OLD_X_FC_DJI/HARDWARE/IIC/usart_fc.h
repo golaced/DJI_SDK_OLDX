@@ -16,22 +16,24 @@ void CPU_LINK_TASK(void);
 typedef struct PID_STA{u16 OP,OI,OD,IP,II,ID,YP,YI,YD;}PID_STA;
 extern PID_STA HPID,SPID,FIX_PID,NAV_PID;
 void UsartSend_M100(uint8_t ch);
-typedef struct int16_rcget{
-				int16_t ROLL;
-				int16_t PITCH;
+
+typedef struct {
+				int16_t ROLL1;
+				int16_t PITCH1;
 				int16_t THROTTLE;
-				int16_t YAW;
+				int16_t YAW1;
 				int16_t AUX1;
 				int16_t AUX2;
 				int16_t AUX3;
 				int16_t AUX4;
 				int16_t AUX5;
-	        int16_t HEIGHT_MODE;
+	      int16_t HEIGHT_MODE;
 	      int16_t POS_MODE;
 	      u8 update,Heart,Heart_rx,Heart_error;
 	      u16 lose_cnt,lose_cnt_rx;
 	      u8 connect;
-				int16_t RST;}RC_GETDATA;
+				int16_t RST;
+}RC_GETDATA;
 
 extern RC_GETDATA Rc_Get;//接收到的RC数据,1000~2000
 				
@@ -44,7 +46,8 @@ struct _float{
 struct _int16{
        int16_t x;
 	     int16_t y;
-	     int16_t z;};		
+	     int16_t z;
+};		
 
 struct _trans{
      struct _int16 origin;  //原始值

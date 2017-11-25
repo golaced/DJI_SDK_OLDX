@@ -52,6 +52,8 @@
 #define SONAR_USE_UART 
 
 #define USE_VER_FINAL 1
+#define USE_VER_3 1
+#define USE_VER_4 1
 //==============================================
 #define OFFSET_AV_NUM 	50					//校准偏移量时的平均次数。
 #define FILTER_NUM 			10					//滑动平均滤波数值个数
@@ -274,7 +276,7 @@ void Flow_set_tar(float set);
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
 #define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
-#define DEBUG_IN_ROOM 1//屋内测试
+#define DEBUG_IN_ROOM 0//屋内测试
 #define USE_PAN_800 1 //使用飞宇三轴云台
 #define RISK_MODE 0   //冒险模式
 //云台初始化位置
@@ -326,5 +328,6 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
 #define DEBUG_QR_LAND 
+//#define DEBUG_HOVER_GPS
 #endif
 

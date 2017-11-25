@@ -1,5 +1,5 @@
 ..\obj\mpu6050.o: ..\HARDWARE\IIC\mpu6050.c
-..\obj\mpu6050.o: ..\HARDWARE\IIC\mpu6050.h
+..\obj\mpu6050.o: ..\HARDWARE\IIC\mpu9250.h
 ..\obj\mpu6050.o: ..\USER\stm32f4xx.h
 ..\obj\mpu6050.o: ..\CORE\core_cm4.h
 ..\obj\mpu6050.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
@@ -35,6 +35,7 @@
 ..\obj\mpu6050.o: ..\FWLIB\inc\stm32f4xx_dac.h
 ..\obj\mpu6050.o: ..\FWLIB\inc\stm32f4xx_dcmi.h
 ..\obj\mpu6050.o: ..\FWLIB\inc\stm32f4xx_fsmc.h
+..\obj\mpu6050.o: ..\HARDWARE\IIC\mpu6050.h
 ..\obj\mpu6050.o: ..\HARDWARE\IIC\include.h
 ..\obj\mpu6050.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 ..\obj\mpu6050.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
