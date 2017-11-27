@@ -24,6 +24,24 @@ float tar_speed[2],tar_speed_avoidc[2];
 float d_flow_watch[2];
 float  integrator[2];
 float flow_control_out,flow_k=30;
+float yaw_exp_global=0;
+float yaw_pid[3]={1,0,0};
+float yaw_control(float in)
+{ 
+	float exp=0;
+  float ero;
+  static float pid[3];
+	static float eror;
+	if(in!=0)
+		exp=in;
+	else
+		exp=yaw_exp_global;
+	ero=To_180_degrees(exp-m100.Yaw);
+	pid[0]=yaw_pid[0]*ero;
+	pid[1]=yaw_pid[1]*(ero-eror);
+	
+	eror=ero;
+}	
 
 void Flow_reset_pos(void)
 {
@@ -145,7 +163,7 @@ float AUTO_LAND_SPEED_DEAD =0.2;
 u8 state_v;
 u32 cnt[10]={0};
 float baro_ground_high;
-float nav_land[2];
+float nav_land[4];
 #define DEAD_NAV_RC 80
 #define AVOID_RC 95
 #if USE_M100
@@ -170,7 +188,7 @@ u8 m100_gps_in=0;
 #endif
 #else
 #define GPS_ERO 450
-#define GPS_ERO_S 450
+#define GPS_ERO_S 450i
 #endif
 #if defined(DEBUG_QR_LAND)
 #define NAV_USE_AVOID 0//使用前向避障
@@ -193,6 +211,7 @@ float T_SHOOT_CHECK=0.4;//射击检查时间(s)
 float STATE_OVER_TIME_MAX[10]={30,30};//状态超时时间
 float FORCE_LAND_TIME=8;//强制着陆时间(min)
 float FORCE_HOME_TIME=6;//强制返航时间(min)
+float tar_bearing=0,tar_bearing_test=0;
 #define FAKE_TAR_NUM 9
 u8 fake_target[FAKE_TAR_NUM]={8,7,6,5,4,3,2,1,0};
 u8 fake_target_force=0;
@@ -212,6 +231,7 @@ void AUTO_LAND_FLYUP(float T)
 	static u16 cnt_state_over_time,cnt_state_over_time_map;
 	static u8 miss_state;
 	u8 gimbal_stink_check=1;
+	float temp;
 	u16 i,j;
 	time_fly=cnt_back_home;
 	u8 temp_pass=!force_check_pass;
@@ -220,6 +240,7 @@ void AUTO_LAND_FLYUP(float T)
 	}
 	if(Rc_Pwm_Inr_mine[RC_THR]<200+1000)
 	{sonar_r=SONAR_SET_HIGHT+0.05;bmp_r=ALT_POS_BMP;}
+	tar_bearing_test=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);  
 //state_change 
 	switch(state)
 	{//-------------------------------------------------起飞
@@ -527,11 +548,11 @@ void AUTO_LAND_FLYUP(float T)
 							{
 							 if(cnt[1]++>0.6/T)
 							 {
-//							 #if defined(DEBUG_QR_LAND)
-//						   state=SD_TO_HOME;
-//							 #else
+							 #if defined(DEBUG_QR_LAND)
+						   state=SD_TO_HOME;
+							 #else
 							 state=SU_CHECK_TAR;
-							 //#endif
+							 #endif
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 
 							}	else
@@ -1114,25 +1135,32 @@ void AUTO_LAND_FLYUP(float T)
 							else
 							cnt[1]=0;	
 
-							if(qr.check&&qr.connect)//过程中看见		 
+							if(qr.check&&qr.connect&&ABS(PWM_DJ[0]-PWM_DJ_DOWN)<100)//过程中垂直看见		 
 							cnt[4]++;
 							else 
 							cnt[4]=0;
 							
-							if(cnt[1]>1.2/T)
-							{ 
-							 if(get_qr_pos&&ABS(qr_local_pos[2]<100)&&qr.connect&&mode.en_qr_land)
-							 state=SU_TO_QR_FIRST;
-							 else
-							 state=SD_CIRCLE_MID_DOWN;
-				 
-							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;    
-							}	
-				      else if(qr.connect&&cnt[4]>0.4/T)//过程中看见
+              thr_sel[0]++;
+							
+							if(thr_sel[0]>10/T)//超时降落
 							{ 
 							 state=SD_CIRCLE_MID_DOWN;
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
-							}			
+							}		
+				      if(qr.connect&&cnt[4]>0.4/T)//过程中看见
+							{ 
+							 state=SD_CIRCLE_MID_DOWN;
+							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
+							}	
+							else if(cnt[1]>1.2/T)//到达后未看见
+							{ 
+							 if(get_qr_pos&&ABS(qr_local_pos[2]<100)&&qr.connect)//有二维码
+							 state=SU_TO_QR_FIRST;
+							 else
+							 state=SD_QR_SEARCH;
+				 
+							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;    
+							}				
 					}
 
 					if(over_time==2)
@@ -1146,23 +1174,53 @@ void AUTO_LAND_FLYUP(float T)
 						 mode.use_qr_as_gps_tar=1;
 				  if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 
-							if(((qr.check&&qr.connect)||//过程中看见
+							if(((qr.check&&qr.connect)||//过程中看见并到达二维码估计位置附近
 									(fabs(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&fabs(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO))&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
 							cnt[1]++;
 							else
 							cnt[1]=0;
 							
-							 if(cnt[1]>0.45*2/T)//开始下降
-							 {state=SD_CIRCLE_MID_DOWN;m100_gps_in=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1; gps_target_change=1;
-							 mode.use_qr_as_gps_tar=1;//使能QR作为目标
-							 }	 
+							if(qr.check&&qr.connect&&ABS(PWM_DJ[0]-PWM_DJ_DOWN)<100)//过程中垂直看见		 
+							cnt[4]++;
+							else 
+							cnt[4]=0;
+							
+							
+							thr_sel[0]++;
+							
+							if(thr_sel[0]>10/T)//超时降落
+							{ 
+							 state=SD_CIRCLE_MID_DOWN;
+							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
+							}		
+							else if(cnt[1]>0.45/T||cnt[4]>0.45/T)//开始下降
+						  {state=SD_CIRCLE_MID_DOWN;m100_gps_in=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1; gps_target_change=1;
+						  mode.use_qr_as_gps_tar=1;//使能QR作为目标
+						  }	 
 					}
 			
 					if(over_time==2)
 					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
 		break; 	
+    case SD_QR_SEARCH://原地查找二维码  WT
+				  if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 
+							if(qr.check&&qr.connect)//过程中看见
+							cnt[1]++;
+							else
+							cnt[1]=0;
+							
+							 if(cnt[1]>0.45/T)//
+							 {
+								state=SU_TO_QR_FIRST;
+								m100_gps_in=cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1; gps_target_change=1;
+							 }	 
+					}		
+					if(over_time==2)
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
+				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+		break; 
 				 
 		case SD_CIRCLE_MID_DOWN://   在圆死区内中速下降
 			if(((int)Rc_Pwm_Inr_mine[RC_THR]>400+1000)&&((int)Rc_Pwm_Inr_mine[RC_THR]<600+1000)){
@@ -1181,7 +1239,7 @@ void AUTO_LAND_FLYUP(float T)
 				cnt[2]++;
 			else
 				cnt[2]=0;
-			if(cnt[2]>1.25/T)
+			if(cnt[2]>1.0/T)
 			{cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[2]=cnt[1]=0;mode_change=1;state=SD_SHUT_DOWN;}
 			
 			if(pwmin.sel_in==0){mode_change=1;state=SD_SAFE;}
@@ -1249,6 +1307,7 @@ mode.en_rth_mine=0;
 						tar_point_globle[0]=check_way_point[0]; tar_point_globle[1]=check_way_point[1];
 						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
 						nav_land[ROLr]=nav_gps[ROLr];
+			      nav_land[YAWr]=0;
 			break;
 			
 			//----------------------------MAP
@@ -1261,6 +1320,7 @@ mode.en_rth_mine=0;
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>125)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>125)nav_land[PITr]=-AVOID_RC*k_m100[4];
 				  #endif
+			      nav_land[YAWr]=0;
 			break;	 				 
 			case SU_MAP2://正飞
 				  tar_point_globle[0]=way_point[1][0]; tar_point_globle[1]=way_point[1][1];
@@ -1285,7 +1345,7 @@ mode.en_rth_mine=0;
 					if((ABS(ultra_ctrl_head.err1)<1000))	
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward*0.816,track.forward*0.816);
-					 
+					nav_land[YAWr]=0; 
 					 	if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1312,7 +1372,7 @@ mode.en_rth_mine=0;
 					if((ABS(ultra_ctrl_head.err1)<1000))
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward*0.816,track.forward*0.816);
-					
+					nav_land[YAWr]=0;
 						if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1342,8 +1402,7 @@ mode.en_rth_mine=0;
 						else	
 						nav_land[PITr]=0;
 					}
-					
-          //nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);//new-----for map WT use GPS nav not laser head control	
+					nav_land[YAWr]=0;
 	        if((mode.test3||mode.test2)&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])//前向壁障
 					nav_land[PITr]=ultra_ctrl_out_head;					
 					if((ABS(ultra_ctrl_head.err1)<1000))	
@@ -1361,6 +1420,7 @@ mode.en_rth_mine=0;
 						tar_point_globle[0]=way_point[0][0]; tar_point_globle[1]=way_point[0][1];
 						nav_land[PITr]=LIMIT(nav_gps[PITr],-120,100);
 						nav_land[ROLr]=nav_gps[ROLr];
+			      nav_land[YAWr]=0;
 					#if	NAV_USE_AVOID
 					 if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>125)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>125)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1398,10 +1458,10 @@ mode.en_rth_mine=0;
 							nav_land[PITr]=nav_gps[PITr];
 						#endif
 						nav_land[ROLr]=nav_gps[ROLr];
-					#endif		
+					#endif
+           nav_land[YAWr]=0;							
 			break;	 	 
-				 
-				 
+
 			//
 			case SD_HOLD://正飞
 				  tar_point_globle[0]=way_point[1][0]; tar_point_globle[1]=way_point[1][1];
@@ -1425,7 +1485,7 @@ mode.en_rth_mine=0;
 					if((ABS(ultra_ctrl_head.err1)<1000))	
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
-					 
+					nav_land[YAWr]=0; 
 					 	if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1452,7 +1512,7 @@ mode.en_rth_mine=0;
 					if((ABS(ultra_ctrl_head.err1)<1000))
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
-					
+					nav_land[YAWr]=0;
 						if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1471,7 +1531,7 @@ mode.en_rth_mine=0;
 					 nav_land[ROLr]=LIMIT(flow_control_out,-track.forward*1.5,track.forward*1.5);	}
 					else
 					{nav_land[ROLr]=0;}
-					
+					nav_land[YAWr]=0;
 					if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0])nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1493,7 +1553,7 @@ mode.en_rth_mine=0;
 					nav_land[ROLr]=flow_control_out;
 					else 
 					{nav_land[ROLr]=0;}
-					
+					nav_land[YAWr]=0;
 					if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1515,7 +1575,7 @@ mode.en_rth_mine=0;
 					nav_land[ROLr]=flow_control_out;
 					else 
 					{nav_land[ROLr]=0;}
-					
+					nav_land[YAWr]=0;
 				
 					if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1526,22 +1586,42 @@ mode.en_rth_mine=0;
 	     case SD_TO_HOME://导航到home			
 						tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
 						nav_land[PITr]=nav_gps[PITr];
-						nav_land[ROLr]=nav_gps[ROLr];	
+						nav_land[ROLr]=nav_gps[ROLr];
+            #if defined(DEBUG_QR_LAND)
+			      tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);  
+			      nav_land[YAWr]=yaw_control(tar_bearing);
+						#else
+            nav_land[YAWr]=0;
+            #endif							 
 			break;	 	
 
 	    case SU_TO_QR_FIRST://导航到第一次看到QR处
-						tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
+				
+			      temp= navCalcDistance(qr_gps_pos[0],qr_gps_pos[1],gps_data.latitude,gps_data.longitude);
+			      if(temp<100)
+						{tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
+						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);}
+						else
+						{tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
+						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);}	
 						nav_land[PITr]=nav_gps[PITr];
-						nav_land[ROLr]=nav_gps[ROLr];
+						nav_land[ROLr]=nav_gps[ROLr];     
+			      nav_land[YAWr]=yaw_control(tar_bearing);
 			break;	
+			
+			case SD_QR_SEARCH://
+						tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
+			      nav_land[YAWr]=10;
+			break;
 //circe track
 	     case SD_CIRCLE_MID_DOWN://			
 					  tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
 						nav_land[PITr]=nav_gps[PITr];
 						nav_land[ROLr]=nav_gps[ROLr];
+						nav_land[YAWr]=0;
 			break;	 							 
 			default:	
-					{nav_land[0]=	nav_land[1]=0;}
+					{nav_land[PITr]=nav_land[ROLr]=nav_land[YAWr]=0;}
 			break;
 		}
 

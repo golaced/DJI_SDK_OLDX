@@ -104,6 +104,51 @@ u8 PWM_AUX_Out_Init(uint16_t hz)//50Hz
 		TIM_OCInitTypeDef  TIM_OCInitStructure;
 		GPIO_InitTypeDef GPIO_InitStructure;
 		uint16_t PrescalerValue = 0;
+	  #if USE_VER_FINAL
+		TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+		TIM_OCStructInit(&TIM_OCInitStructure);
+
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+	
+		//////////////////////////////////////TIM1///////////////////////////////////////////
+	  u32 hz_set = ACCURACY*hz/2;
+		hz_set = LIMIT (hz_set,1,84000000);
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_11; 
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+		GPIO_InitStructure.GPIO_PuPd =GPIO_PuPd_DOWN;//GPIO_PuPd_UP ;
+		GPIO_Init(GPIOA, &GPIO_InitStructure); 
+
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_TIM1);
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_TIM1);
+		//------------------
+		/* Compute the prescaler value */
+		PrescalerValue = (uint16_t) ( ( SystemCoreClock /2 ) / hz_set ) - 1;
+		/* Time base configuration */
+		TIM_TimeBaseStructure.TIM_Period = ACCURACY;									
+		TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;		
+		TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+		TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+
+		TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+		TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+		/* PWM1 Mode configuration: Channel1 */
+		TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+		TIM_OCInitStructure.TIM_Pulse = INIT_DUTY;
+		TIM_OC1Init(TIM1, &TIM_OCInitStructure);
+		TIM_OCInitStructure.TIM_Pulse = INIT_DUTY;
+		TIM_OC4Init(TIM1, &TIM_OCInitStructure);
+
+
+		TIM_CtrlPWMOutputs(TIM1, ENABLE);
+		TIM_ARRPreloadConfig(TIM1, ENABLE);
+		TIM_Cmd(TIM1, ENABLE);	
+	
+	
+	  #else
 		u32 hz_set = ACCURACY*hz*2;
 
 		TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
@@ -181,7 +226,7 @@ u8 PWM_AUX_Out_Init(uint16_t hz)//50Hz
 		TIM_CtrlPWMOutputs(TIM4, ENABLE);
 		TIM_ARRPreloadConfig(TIM4, ENABLE);
 		TIM_Cmd(TIM4, ENABLE);	
-		
+		#endif
 		
     SetPwm_AUX(0,0,0);
 		
@@ -226,6 +271,7 @@ void SetPwm_AUX_DJ(float pit,float rol,float yaw)
 	aux.pwm_tem[1]=aux.init[1];
 	aux.pwm_tem[2]=aux.init[2];
 	}
+	
 	TIM8->CCR1 = (aux.pwm_tem[0] ) ;				//pit	
 	TIM8->CCR2 = (aux.pwm_tem[1] ) ;				//rol
 	TIM4->CCR3 = (aux.pwm_tem[2] )/2  ;          //yaw
@@ -266,9 +312,15 @@ void SetPwm_AUX(float pit,float rol,float yaw)
 	aux.pwm_tem[1]=aux.init[1];
 	aux.pwm_tem[2]=aux.init[2];
 	}
+	
+	#if USE_VER_FINAL
+	TIM1->CCR1 = (aux.pwm_tem[0] )/2 ;				//pit	
+	TIM1->CCR4 = (aux.pwm_tem[1] )/2 ;     //yaw
+	#else
 	TIM8->CCR1 = (aux.pwm_tem[0] ) ;				//pit	
 	TIM8->CCR2 = (aux.pwm_tem[1] ) ;				//rol
 	TIM4->CCR3 = (aux.pwm_tem[2] )/2  ;          //yaw
+	#endif
 }	
 
 

@@ -128,6 +128,26 @@ void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *po
     *posEast = (lon - navUkfData.holdLon) * navUkfData.r2;
 }
 
+// input lat/lon in degrees, returns distance in meters
+float navCalcDistance(double lat1, double lon1, double lat2, double lon2) {
+    float n = (lat1 - lat2) * navUkfData.r1;
+    float e = (lon1 - lon2) * navUkfData.r2;
+    return __sqrtf(n*n + e*e);
+}
+
+// input lat/lon in degrees, returns bearing in radians
+float navCalcBearing(double lat1, double lon1, double lat2, double lon2) {
+    float n = (float)((lat2 - lat1) * (double)DEG_TO_RAD * navUkfData.r1);
+    float e = (float)((lon2 - lon1) * (double)DEG_TO_RAD * navUkfData.r2);
+    float ret = atan2f(e, n);
+
+    if (!isfinite(ret))
+        ret = 0.0f;
+
+    return To_180_degrees(ret);
+}
+
+
 static void navUkfResetPosition(float deltaN, float deltaE, float deltaD) {
     int i;
 
@@ -168,6 +188,11 @@ static void navUkfSetLocalPositionTarget(double posN, double posE) {
 
 void navUkfSetHereAsPositionTarget(void) {
 	navUkfSetGlobalPositionTarget(gps_data.latitude, gps_data.longitude);
+}
+
+void CalcGlobalLocation(float posNorth,float posEast,float local_Lat,float local_Lon,double *GPS_W_F,double *GPS_J_F){ 
+    *GPS_W_F=(float)posNorth/(float)(navUkfData.r1+0.1)+local_Lat;
+    *GPS_J_F=(float)posEast/(float)(navUkfData.r2+0.1)+local_Lon;
 }
 
 //矢量垂线方程
@@ -387,12 +412,12 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	Estimate_drone_target_local_position( navUkfData.holdLat, navUkfData.holdLon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);
 	
   //qr land & map
-	float	yaw_use_gimbal_v=To_180_degrees(m100.Yaw-0*(float)(PWM_DJ[1]-1500)/250.*65);
+	float	yaw_use_gimbal_v=To_180_degrees(m100.Yaw-0*(float)(PWM_DJ[1]-1500)/250.*65);//飞行器当前航向
 	if(qr.check&&qr.connect&&(state_v==SD_TO_HOME)&&get_qr_pos==0)	
 	{
 		get_qr_pos=1;
-		qr_gps_pos[0]=gps_data.latitude;
-		qr_gps_pos[1]=gps_data.longitude;
+//		qr_gps_pos[0]=gps_data.latitude;
+//		qr_gps_pos[1]=gps_data.longitude;
 		
 		qr_pos_off[0]=0;
 		qr_pos_off[1]=0;
@@ -404,8 +429,13 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	float qr_posy=(float)qr.y/100.;
 	float qr_posz=(float)qr.z/100.;
 	float qr_yaw=qr.yaw;
+	#if DEBUG_IN_ROOM
+  drone_local_pos[East]=drone_local_pos[North]=0;
+  #endif		
 	Estimate_land_marker_local_position( qr_posx, qr_posy, qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
+	//没有3d信息的qr位置
 	Estimate_land_marker_local_position1((float)qr.center_x/100., (float)qr.center_y/100., qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
+  CalcGlobalLocation(qr_local_pos[North],qr_local_pos[East],gps_local_cor_zero[North], gps_local_cor_zero[East],&qr_gps_pos[0],&qr_gps_pos[1]);
 	}
 	
 	if(mode.use_qr_as_gps_tar&&mode.en_qr_land)//目标为qr 局部坐标
@@ -415,7 +445,8 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		tar_drone_local_pos[East]= qr_local_pos1[East];}
 		else{
 		tar_drone_local_pos[North]=qr_local_pos[North];
-		tar_drone_local_pos[East]= qr_local_pos[East];}
+		tar_drone_local_pos[East]= qr_local_pos[East];
+		}
 	}	
 	
 	
@@ -434,8 +465,8 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	//0-->wei  1 -->jing
 	//filter
-	nav_Data.gps_ero_dis_lpf[0]=flt_gps*Moving_Median(28,3,y[0]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[0];
-	nav_Data.gps_ero_dis_lpf[1]=flt_gps*Moving_Median(29,3,y[1]*1000)+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[1];
+	nav_Data.gps_ero_dis_lpf[0]=flt_gps*y[0]*1000+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[0];
+	nav_Data.gps_ero_dis_lpf[1]=flt_gps*y[1]*1000+(1-flt_gps)*nav_Data.gps_ero_dis_lpf[1];
 	//cal_pos_dis_for_line
 	float k[3],b[3];
 	float jiao[2];

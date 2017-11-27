@@ -267,6 +267,7 @@ void Flow_set_tar(float set);
 #define SD_SAFE 22
 #define SD_TO_HOME 26
 #define SU_TO_QR_FIRST 27
+#define SD_QR_SEARCH 28
 //--------------------------------------ZHB----------------------------------------
 #include "m100.h"
 #define TEST_GPS 0
@@ -276,14 +277,19 @@ void Flow_set_tar(float set);
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
 #define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
-#define DEBUG_IN_ROOM 0//屋内测试
-#define USE_PAN_800 1 //使用飞宇三轴云台
+#define DEBUG_IN_ROOM 1//屋内测试
+//#define USE_PAN_800  //使用飞宇三轴云台
+#define USE_PAN_NUM1  //Pix机架云台1号
 #define RISK_MODE 0   //冒险模式
 //云台初始化位置
-#if USE_PAN_800
+#if defined(USE_PAN_800)
 #define  PWM_DJ0 1500
 #define	 PWM_DJ1 1500
 #define	 PWM_DJ_DOWN 1000
+#elif defined(USE_PAN_NUM1)
+#define  PWM_DJ0 1300//Pitch
+#define	 PWM_DJ1 1500//Yaw
+#define	 PWM_DJ_DOWN 1630
 #else
 #define  PWM_DJ0 1630//Pitch
 #define	 PWM_DJ1 1500//Yaw

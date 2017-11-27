@@ -43,8 +43,6 @@ int main(void)
 //	SPI2_Init1();
 //	Delay_ms(100);
 //	Mpu9250_Init();
-//	Delay_ms(100);
-//	Mpu9250_Init();
 //	ms5611DetectSpi();
 	#endif 
 	 

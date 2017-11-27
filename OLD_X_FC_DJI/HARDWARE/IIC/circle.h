@@ -22,7 +22,7 @@
 	u8 dj_fly_line;
 }CIRCLE;
 extern CIRCLE circle,track,mouse,qr;
-extern float nav_circle[2],nav_land[2];
+extern float nav_circle[2],nav_land[4];
 void circle_control(float T);
 #define MID_Y 125
 #define MID_X 140
@@ -63,7 +63,8 @@ extern float target_map[MAP_NUM][5];
 void Clear_map(void);
 void map_builder(void);
 void navUkfCalcGlobalDistance(double lat, double lon, float *posNorth, float *posEast);
-
+float navCalcDistance(double lat1, double lon1, double lat2, double lon2);
+float navCalcBearing(double lat1, double lon1, double lat2, double lon2); 
 extern double qr_gps_pos[2];//检查点
 extern double gps_local_cor_zero[2];//局部GPS坐标系原点
 extern float qr_local_pos[3],drone_local_pos[2], qr_local_pos1[3],qr_pos_off[2];

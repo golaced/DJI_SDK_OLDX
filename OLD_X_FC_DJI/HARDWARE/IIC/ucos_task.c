@@ -265,9 +265,9 @@ void inner_task(void *pdata)
 	}
 	#endif
 	// ÔÆÌ¨¿ØÖÆ
-	#if defined(DEBUG_QR_LAND)
-	en_track=0;
-	#endif
+//	#if defined(DEBUG_QR_LAND)
+//	en_track=0;
+//	#endif
 	static u8 dj_mode_reg;
 	if((mode.dj_by_hand&&!dj_mode_reg))
 	{
@@ -296,6 +296,16 @@ void inner_task(void *pdata)
    else if(PWM_DJ[1]>PWM_DJ1+SCAN_RANGE)	
 	 { flag_scan=-1;PWM_DJ[1]=PWM_DJ1+SCAN_RANGE-5;}
 	 PWM_DJ[1]+=flag_scan*k_scan*flag_yun[1];//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
+	}
+		else if(state_v==SD_QR_SEARCH)//
+	{
+	 PWM_DJ[1]=PWM_DJ1;
+	
+   if(PWM_DJ[0]<PWM_DJ0-SCAN_RANGE)	
+	 { flag_scan=1;PWM_DJ[0]=PWM_DJ0-SCAN_RANGE+5; }
+   else if(PWM_DJ[1]>PWM_DJ1)	
+	 { flag_scan=-1;PWM_DJ[0]=PWM_DJ0+SCAN_RANGE-5;}
+	 PWM_DJ[0]+=flag_scan*k_scan*flag_yun[1];
 	}
 	else  if(state_v==SD_HOLD)
 			{
@@ -376,7 +386,8 @@ void inner_task(void *pdata)
 			}else gimbal_stink=0;
 	#endif
 	
-  if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))			
+  //if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))			
+	if(mode.en_qr_land&&(state_v==SD_CIRCLE_MID_DOWN))					
 	PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ
 
 	//PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
@@ -452,7 +463,7 @@ void inner_task(void *pdata)
 	
 	#endif
 	SetPwm(Rc_Pwm_Out_mine,Rc_Pwm_off,pwmin.min,pwmin.max);
-	SetPwm_AUX(Rc_Pwm_Out_mine[4],Rc_Pwm_Out_mine[5],0);
+	SetPwm_AUX(Rc_Pwm_Out_mine[4],Rc_Pwm_Out_mine[5],0);//4->pitch  5->yaw
 	dj_mode_reg=mode.dj_by_hand;
 	
 	Rc_Pwm_Out_mine_USE[0]=Rc_Pwm_Out_mine[0];
@@ -667,10 +678,11 @@ OS_STK M100_TASK_STK[M100_STK_SIZE];
 u8 en_vrc;
 u8 m100_control_mode = 0x4A;
 float k_m100[5]={1,1,1,1,1};//pit rol thr yaw avoid
-float k_px4[4]={0.008,0.008,0.008,2};
-float k_px4_rc[4]={0.008,0.008,0.005,2};
+float k_px4[4]={0.008,0.008,0.008,0.005};
+float k_px4_rc[4]={0.008,0.008,0.005,0.005};
 float tar_px4[4]={0};
 float tar_px4_rc[4]={0};
+u16 Rc_Pwm_Inr_mines[4]={1500,1500,1500,1500};
 void m100_task(void *pdata)
 {		
 	static u8 cnt_m100;
@@ -680,14 +692,14 @@ void m100_task(void *pdata)
 		while(1)
 	{
 	#if USE_PX4
-	tar_px4[0]=((float)Rc_Pwm_Out_mine_USE[RC_ROLL]-1500)*k_px4[0];
-	tar_px4[1]=((float)Rc_Pwm_Out_mine_USE[RC_PITCH]-1500)*k_px4[1];
-	tar_px4[2]=((float)Rc_Pwm_Out_mine_USE[RC_THR]-1500)*k_px4[2];
-	tar_px4[3]=((float)Rc_Pwm_Out_mine_USE[RC_YAW]-1500)*k_px4[3];
-	tar_px4_rc[0]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500,15))*k_px4_rc[0];
-	tar_px4_rc[1]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500,15))*k_px4_rc[1];
-	tar_px4_rc[2]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_THR]-1500,15))*k_px4_rc[2];
-	tar_px4_rc[3]=(my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_YAW]-1500,15))*k_px4_rc[3];
+	tar_px4[0]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_ROLL]-1500)*k_px4[0],-10,10);
+	tar_px4[1]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_PITCH]-1500)*k_px4[1],-10,10);
+	tar_px4[2]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_THR]-1500)*k_px4[2],-10,10);
+	tar_px4[3]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_YAW]-1500)*k_px4[3],-33,33);
+	tar_px4_rc[0]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500,15))*k_px4_rc[0],-10,10);
+	tar_px4_rc[1]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500,15))*k_px4_rc[1],-10,10);
+	tar_px4_rc[2]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_THR]-1500,15))*k_px4_rc[2],-10,10);
+	tar_px4_rc[3]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mines[RC_YAW]-1500,15))*k_px4_rc[3],-33,33);
 	if(m100.Rc_gear>1600)//&&ALT_POS_SONAR2>0.32666)
 	en_vrc=1;
 	else
