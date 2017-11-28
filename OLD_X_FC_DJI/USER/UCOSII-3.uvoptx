@@ -591,6 +591,81 @@
           <WinNumber>2</WinNumber>
           <ItemText>PWM_DJ1</ItemText>
         </Ww>
+        <Ww>
+          <count>57</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>qr,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>58</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>circle,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>59</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>qr_local_pos</ItemText>
+        </Ww>
+        <Ww>
+          <count>60</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/usart_fc.c\qr.x,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>61</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/usart_fc.c\qr.y,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>62</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/usart_fc.c\qr.z,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>63</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\UCOSII_3\../HARDWARE/IIC/usart_fc.c\qr.yaw</ItemText>
+        </Ww>
+        <Ww>
+          <count>64</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>yaw_use_gimbal_v</ItemText>
+        </Ww>
+        <Ww>
+          <count>65</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>nav_gps</ItemText>
+        </Ww>
+        <Ww>
+          <count>66</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>tar_bearing_test</ItemText>
+        </Ww>
+        <Ww>
+          <count>67</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>test_point</ItemText>
+        </Ww>
+        <Ww>
+          <count>68</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>PWM_DJ</ItemText>
+        </Ww>
+        <Ww>
+          <count>69</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>DJ_TEST,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>70</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>k_yaw_gimbal</ItemText>
+        </Ww>
+        <Ww>
+          <count>71</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>hard_fal</ItemText>
+        </Ww>
       </WatchWindow2>
       <MemoryWindow1>
         <Mm>
@@ -1141,8 +1216,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\HARDWARE\IIC\flash.c</PathWithFileName>
-      <FilenameWithoutPath>flash.c</FilenameWithoutPath>
+      <PathWithFileName>..\HARDWARE\IIC\led_fc.c</PathWithFileName>
+      <FilenameWithoutPath>led_fc.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -1153,8 +1228,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\HARDWARE\IIC\led_fc.c</PathWithFileName>
-      <FilenameWithoutPath>led_fc.c</FilenameWithoutPath>
+      <PathWithFileName>..\HARDWARE\IIC\flash.c</PathWithFileName>
+      <FilenameWithoutPath>flash.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

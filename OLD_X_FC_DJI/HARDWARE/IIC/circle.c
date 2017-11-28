@@ -144,7 +144,7 @@ float navCalcBearing(double lat1, double lon1, double lat2, double lon2) {
     if (!isfinite(ret))
         ret = 0.0f;
 
-    return To_180_degrees(ret);
+    return To_180_degrees(ret*57.3);
 }
 
 
@@ -255,6 +255,7 @@ double tar_point_globler[2]={39.9626688, 116.3039488};//全局输出
 double gps_local_cor_zero[2]={39.9626688, 116.3039488};//局部GPS坐标系原点
 u8 state_set_point;
 u8 set_point1;
+float	yaw_use_gimbal_v=0,k_yaw_gimbal=0.22;
 void  GPS_hold(nmea_msg *gpsx_in,float T)
 { static u8 init,state;
 	float out_temp[2];
@@ -281,10 +282,10 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		gps_pid_use.kd=gps_pid.kd;
 		}
 		
-
-	gps_local_cor_zero[0]=check_way_point[0];//使用第一个检测点作为qrland局部位置
-	gps_local_cor_zero[1]=check_way_point[1];
-		
+  if(state_v!=SG_LOW_CHECK){
+	gps_local_cor_zero[0]=home_point[0];//qrland局部位置坐标系
+	gps_local_cor_zero[1]=home_point[1];
+  }	
 	#if USE_M100
 	 #if USE_PX4
 	 if(Rc_Pwm_Inr_mine[RC_PITCH]>1800&&Rc_Pwm_Inr_mine[RC_ROLL]>1800&&Rc_Pwm_Inr_mine[RC_YAW]<1200&&!dji_rst_protect&&state_v==SG_LOW_CHECK&&!en_vrc)
@@ -308,8 +309,12 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	 lon = gpsx.longitude;
 	 lat = gpsx.latitude;
   #endif	
-	//if(1){
+	#if DEBUG_IN_ROOM
+  if(1){
+	lat=31.123;lon=123.123;	
+  #else	 
 	if(lat!=0&&lon!=0&&gpsx.gpssta>=1&&gpsx.rmc_mode=='A'){//有效数据
+	#endif
 	gps_data.latitude=lat;
 	gps_data.longitude=lon;
 	gps_data.angle=gpsx.angle;	
@@ -412,7 +417,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	Estimate_drone_target_local_position( navUkfData.holdLat, navUkfData.holdLon, gps_local_cor_zero[North], gps_local_cor_zero[East], T);
 	
   //qr land & map
-	float	yaw_use_gimbal_v=To_180_degrees(m100.Yaw-0*(float)(PWM_DJ[1]-1500)/250.*65);//飞行器当前航向
+	yaw_use_gimbal_v=To_180_degrees(m100.Yaw-1*LIMIT((float)(PWM_DJ[1]-1500)*k_yaw_gimbal,-60,60));//飞行器当前航向
 	if(qr.check&&qr.connect&&(state_v==SD_TO_HOME)&&get_qr_pos==0)	
 	{
 		get_qr_pos=1;
@@ -433,7 +438,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
   drone_local_pos[East]=drone_local_pos[North]=0;
   #endif		
 	Estimate_land_marker_local_position( qr_posx, qr_posy, qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
-	//没有3d信息的qr位置
+	//没有3d信息的qr位置 会随摄像头旋转变化 适用与垂直
 	Estimate_land_marker_local_position1((float)qr.center_x/100., (float)qr.center_y/100., qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
   CalcGlobalLocation(qr_local_pos[North],qr_local_pos[East],gps_local_cor_zero[North], gps_local_cor_zero[East],&qr_gps_pos[0],&qr_gps_pos[1]);
 	}
@@ -456,7 +461,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
   float yaw_use;
   #if USE_M100
-  yaw_use=Moving_Median(23,3,m100.Yaw);
+  yaw_use=m100.Yaw;
   #else
   yaw_use=Yaw;		
   #endif	
@@ -533,9 +538,11 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	
 	float ero_qr_pix[2];
 	static float ero_qr_pixr[2];
+	#if !DEBUG_IN_ROOM
 		if((mode.land_by_pix&&mode.en_qr_land&&
 			((ABS(circle.x-160)<160*pix_dead&&ABS(circle.y-120)<120*pix_dead))
 		   &&state_v==SD_CIRCLE_MID_DOWN)||0)//使用图像对准
+	#endif	
 	{
 		if(qr.check&&qr.connect){
 		ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,0)*((float)qr.z/100.);
@@ -555,7 +562,11 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	}
 	
 	//final output  0  ROL  1 PIT
+	#if !DEBUG_IN_ROOM
 	if((gpsx.gpssta>=1&&gpsx.rmc_mode=='A')||0){//定位有效
+	#else
+	if(1){
+	#endif	
 	nav_gps[ROLr]=LIMIT(out_temp[ROLr],-MAX_GPS,MAX_GPS);
 	nav_gps[PITr]=LIMIT(out_temp[PITr],-MAX_GPS,MAX_GPS);
   }

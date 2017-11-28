@@ -60,11 +60,13 @@ void NMI_Handler(void)
   * @param  None
   * @retval None
   */
+u8 hard_fal=0;
 void HardFault_Handler(void)
 {
   /* Go to infinite loop when Hard Fault exception occurs */
   while (1)
   {
+		hard_fal=1;
   }
 }
 

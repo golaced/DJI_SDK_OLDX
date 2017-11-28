@@ -82,3 +82,4 @@
 ..\obj\main.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 ..\obj\main.o: ..\HARDWARE\IIC\mpu9250.h
 ..\obj\main.o: ..\HARDWARE\IIC\ms5611_spi.h
+..\obj\main.o: ..\HARDWARE\IIC\beep.h

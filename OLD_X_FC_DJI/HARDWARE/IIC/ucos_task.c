@@ -85,7 +85,7 @@ int YUN_PER_OFF=50;
 int YUN_PER_OFF=40;
 #endif
 u8 gimbal_stink=0;
-u16 DJ_TEST[3]={800,1520,1500};
+u16 DJ_TEST[3]={800,1500,1500};
 float set_angle_dj[3];
 float kp_dj[3]={10,50,8},kd_dj[3],i_yaw;
 float k_scan=0.25;//0.25;
@@ -265,14 +265,16 @@ void inner_task(void *pdata)
 	}
 	#endif
 	// ÔÆÌ¨¿ØÖÆ
-//	#if defined(DEBUG_QR_LAND)
-//	en_track=0;
-//	#endif
+	#if defined(DEBUG_QR_LAND)
+	   #if !QR_LAND_USE_MARK_GPS
+	    en_track=0;
+	   #endif
+	#endif
 	static u8 dj_mode_reg;
 	if((mode.dj_by_hand&&!dj_mode_reg))
 	{
-   PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1250) -  PWM_DJ[0] );
-	 PWM_DJ[1]=PWM_DJ1;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
+   PWM_DJ[0]=PWM_DJ0;
+	 PWM_DJ[1]=PWM_DJ1;
 	}
 	if(mouse.check)
 	{
@@ -322,7 +324,11 @@ void inner_task(void *pdata)
 	 PWM_DJ[0]=PWM_DJ0;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1830) -  PWM_DJ[0] );
    PWM_DJ[1]=PWM_DJ1;//( 1 / ( 1 + 1 / (k_reset*3.14f *0.01 ) ) ) * ( (float)(1500) -  PWM_DJ[1] );
 	}
+	#if defined(DEBUG_QR_LAND)
+	else if(en_track&&track.check&&circle.connect&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_QR_SEARCH||state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
+	#else
 	else if(en_track&&track.check&&circle.connect&&(state_v==SD_HOLD_BREAK||state_v==SD_HOLD2||state_v==SG_LOW_CHECK||state_v==SD_SHOOT)){
+	#endif
 	float ero[2],ero2[2],ero3[2],ero4[2];
   static float ero_r[2],ero_r2[2],ero_r3[2];//pitch
   ero[0]=my_deathzoom_2(-circle.y+120,30);//,0.5,(float)68/1200);
@@ -385,13 +391,17 @@ void inner_task(void *pdata)
 				gimbal_stink=0;
 			}else gimbal_stink=0;
 	#endif
-	
-  //if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))			
-	if(mode.en_qr_land&&(state_v==SD_CIRCLE_MID_DOWN))					
+	#if !QR_LAND_USE_MARK_GPS
+  if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))	
+  #else		
+	if(mode.en_qr_land&&(state_v==SD_CIRCLE_MID_DOWN))			
+  #endif		
 	PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ
 
-	//PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
-	//PWM_DJ[1]=DJ_TEST[1];//ROLL_DJ
+	#if PAN_TEST
+	PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
+	PWM_DJ[1]=DJ_TEST[1];//Yaw_DJ
+	#endif
 	/*duoji*/
 		float out[3];
 	float ero_dj[3];
@@ -931,7 +941,7 @@ void tmr2_callback(OS_TMR *ptmr,void *p_arg)
 static u16 cnt_1,cnt_2;	
 static u8 cnt;
 	Mode_FC();
-	LEDRGB_STATE();
+	LEDRGB_STATE(0.05);
 	if(circle.lose_cnt++>4/0.05)
 		circle.connect=0;
 	if(mouse.lose_cnt++>2/0.05)

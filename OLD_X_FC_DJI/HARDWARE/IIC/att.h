@@ -67,5 +67,6 @@ extern float thr_value;
 extern float nav_angle_ukf[2],nav_ukf_g[2];
 extern int baro_to_ground;
 extern u8 state_v;
+extern float yaw_pid[3];
 #endif
 

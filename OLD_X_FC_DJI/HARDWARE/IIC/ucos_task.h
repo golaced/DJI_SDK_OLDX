@@ -36,7 +36,7 @@ void mems_task(void *pdata);
 
 //-----------------------INNER解算线程
 //设置任务堆栈大小
-#define INNER_STK_SIZE  					64*3
+#define INNER_STK_SIZE  					64*10
 //任务堆栈	
 extern OS_STK INNER_TASK_STK[INNER_STK_SIZE];
 //任务函数
@@ -44,7 +44,7 @@ void inner_task(void *pdata);
 
 //------------------------OUTER解算线程
 //设置任务堆栈大小
-#define OUTER_STK_SIZE  					64*3
+#define OUTER_STK_SIZE  					64*10
 //任务堆栈	
 extern OS_STK OUTER_TASK_STK[OUTER_STK_SIZE];
 //任务函数
@@ -68,7 +68,7 @@ void baro_task(void *pdata);
 
 //-----------------------SONAR线程
 //设置任务堆栈大小
-#define SONAR_STK_SIZE  					64*10
+#define SONAR_STK_SIZE  					64
 //任务堆栈	
 extern OS_STK SONAR_TASK_STK[SONAR_STK_SIZE];
 //任务函数

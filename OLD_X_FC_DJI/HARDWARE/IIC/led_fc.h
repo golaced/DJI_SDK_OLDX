@@ -56,7 +56,7 @@ extern u8 LED_Brightness[4],LED[3];
 #define YELLOW 3
 #define BLACK 4
 #define WHITE 5
-extern void LEDRGB_STATE(void);
+extern void LEDRGB_STATE(float dt);
 extern void LEDRGB_COLOR(u8 color);
 extern void LEDRGB(u8 sel,u8 on);				
 #endif

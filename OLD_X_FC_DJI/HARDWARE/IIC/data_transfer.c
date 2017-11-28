@@ -179,16 +179,16 @@ void ANO_DT_Data_Exchange(void)
 			#if USE_HT_GROUND 
 
       #else			 
-		 ANO_DT_Send_Senser( mpu6050.Acc.x,mpu6050.Acc.y,mpu6050.Acc.z,
+		   ANO_DT_Send_Senser( mpu6050.Acc.x,mpu6050.Acc.y,mpu6050.Acc.z,
 												mpu6050.Gyro.x,mpu6050.Gyro.y,mpu6050.Gyro.z,
 												ak8975.Mag_Val.x,ak8975.Mag_Val.y,ak8975.Mag_Val.z);
-			 #endif
+			#endif
 		 }else {sel[0]=0;
 		#if USE_HT_GROUND 
 		if(!fly_ready)	 	 
-    HT_DT_Send_RC(CH[2]+1500,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,CH[5]+1500,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
+    HT_DT_Send_RC(CH[2]+1500,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,qr.check,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
 		else
-		HT_DT_Send_RC(thr_value+1000,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,CH[5]+1500,m100_data_refresh,m100.STATUS&&m100.GPS_STATUS,tar_need_to_check_odroid[2],state_v);	
+		HT_DT_Send_RC(thr_value+1000,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,qr.check,m100_data_refresh,m100.STATUS&&m100.GPS_STATUS,tar_need_to_check_odroid[2],state_v);	
     #else			 
 		if(!fly_ready)	 
 		ANO_DT_Send_RCData(Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[1],CH[4]+1500,CH[5]+1500,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
@@ -313,7 +313,7 @@ void ANO_DT_Data_Exchange(void)
 		else {sel[3]=0;		
 		ANO_DT_Send_PID(6,(float)KEY[2]/1000.,(float)KEY[3]/1000.,(float)YUN_PER_OFF/1000.,
 											track.control_yaw_pix,qr_pid.kp,qr_pid.kd,
-											0,0,(float)tar_need_to_check_odroid[2]/1000.);
+											yaw_pid[0],0,(float)tar_need_to_check_odroid[2]/1000.);
 		f.send_pid1=0;
 		}
 	 }
@@ -557,9 +557,10 @@ void ANO_DT_Data_Receive_Anl(u8 *data_buf,u8 num)
 			qr_pid.kp = 0.001*( (vs16)(*(data_buf+12)<<8)|*(data_buf+13) );
 			qr_pid.kd = 0.001*( (vs16)(*(data_buf+14)<<8)|*(data_buf+15) );
 //		
-//		robot_land.k_f					 = 0.001*( (vs16)(*(data_buf+17)<<8)|*(data_buf+16) );
+  		yaw_pid[0]					 = 0.001*( (vs16)(*(data_buf+17)<<8)|*(data_buf+16) );
 //		LENGTH_OF_DRONE=    ( (vs16)(*(data_buf+18)<<8)|*(data_buf+19) );
-	//	UART_UP_LOAD_SEL_FORCE=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
+	// 	UART_UP_LOAD_SEL_FORCE=    ( (vs16)(*(data_buf+20)<<8)|*(data_buf+21) );
+		
 		if(f.send_check == 0)
 		{
 			f.send_check = 1;

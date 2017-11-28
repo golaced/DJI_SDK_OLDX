@@ -4,6 +4,7 @@
 #include "include.h"
 #include "mpu6050.h"
 #include "hml5833l.h"
+#include "beep.h"
 void LEDRGB_COLOR(u8 color);
 void LED_Init()
 {
@@ -164,11 +165,12 @@ break;
 #define CAL_MPU 1
 #define CAL_M  2
 #include "circle.h"
-void LEDRGB_STATE(void)
+void LEDRGB_STATE(float dt)
 {
 static u8 main_state;
 static u8 mpu_state,m_state,idle_state;
 static u16 cnt,cnt_idle;
+static u8 beep_sel;
 u8 mode_control;
 	
 	
@@ -203,85 +205,89 @@ if(state_set_point!=0)
 {
 idle_state=0;
 switch(state_set_point)
-{//ARM
+{
 	case 1:
 		    if(flag_cnt_gps)
 				LEDRGB_COLOR(BLACK);		
 				else
 				LEDRGB_COLOR(RED);
+				fc_save_gps_beep=21;
 	break;
 	case 3:
 		 if(flag_cnt_gps)
 				LEDRGB_COLOR(BLACK);		
 				else
 				LEDRGB_COLOR(BLUE);
+				fc_save_gps_beep=22;
 	break;
 	case 5:
 		 if(flag_cnt_gps)
 				LEDRGB_COLOR(BLACK);		
 				else
 				LEDRGB_COLOR(WHITE);
+				fc_save_gps_beep=23;
 	break;
 	default:
 		LEDRGB_COLOR(BLACK);	
   break;
 }
-
+  Play_Music_Task(BEEP_GPS_SAVE,dt);
 }
 else {
 main_state=0;
-switch(idle_state)
-{//ARM
-	case 0:
-		if(main_state==IDLE)
-			{idle_state=1;cnt_idle=0;}
-	break;
-	case 1:
-	 if(state_v==SG_LOW_CHECK)
-				LEDRGB_COLOR(WHITE); 
-		 else
-				LEDRGB_COLOR(RED);
-	if(cnt_idle++>0.1/0.05)
-	{idle_state=2;cnt_idle=0;}
-	break;
-	case 2:
-		LEDRGB_COLOR(BLACK);	
-	if(cnt_idle++>0.1/0.05)
-	{idle_state=3;cnt_idle=0;}
-	break;
-	
-	case 3:
-	if(circle.connect&&m100.mems_board_connect)
-	LEDRGB_COLOR(WHITE); 
-	else if(m100.mems_board_connect) 
-	LEDRGB_COLOR(BLUE); 
-	else
-	LEDRGB_COLOR(RED);
-	if(cnt_idle++>0.1/0.05)
-	{idle_state=4;cnt_idle=0;}
-	break;
-	case 4:
-		LEDRGB_COLOR(BLACK);	
-	if(cnt_idle++>0.1/0.05)
-	{idle_state=5;cnt_idle=0;}
-	break;
-	
-	case 5:
-	 if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=1)
-				LEDRGB_COLOR(WHITE); 
-		 else if(m100.refresh&&!dji_rc_miss)
-			  LEDRGB_COLOR(BLUE);
-		 else
-				LEDRGB_COLOR(RED);
-	if(cnt_idle++>0.1/0.05)
-	{idle_state=6;cnt_idle=0;}
-	break;
-	case 6:
-		LEDRGB_COLOR(BLACK);	
-	if(cnt_idle++>1.2/0.05)
-	{idle_state=0;cnt_idle=0;}
-	break;
-}
+	switch(idle_state)
+	{//ARM
+		case 0:
+			if(main_state==IDLE)
+				{idle_state=1;cnt_idle=0;}
+		break;
+		case 1:
+		 if(state_v==SG_LOW_CHECK)
+		 {LEDRGB_COLOR(WHITE);fc_state_beep[0]=BEEP_STATE3;} 
+			 else
+			 {LEDRGB_COLOR(RED);fc_state_beep[0]=BEEP_STATE1;} 
+		if(cnt_idle++>0.1/0.05)
+		{idle_state=2;cnt_idle=0;}
+		break;
+		case 2:
+			LEDRGB_COLOR(BLACK);	
+		if(cnt_idle++>0.1/0.05)
+		{idle_state=3;cnt_idle=0;}
+		break;
+		
+		case 3:
+		if(circle.connect&&m100.mems_board_connect)
+		{LEDRGB_COLOR(WHITE); fc_state_beep[1]=BEEP_STATE3;} 
+		else if(m100.mems_board_connect) 
+		{LEDRGB_COLOR(BLUE);fc_state_beep[1]=BEEP_STATE2;}  
+		else
+		{LEDRGB_COLOR(RED);fc_state_beep[1]=BEEP_STATE1;} 
+		if(cnt_idle++>0.1/0.05)
+		{idle_state=4;cnt_idle=0;}
+		break;
+		case 4:
+			LEDRGB_COLOR(BLACK);	
+		if(cnt_idle++>0.1/0.05)
+		{idle_state=5;cnt_idle=0;}
+		break;
+		
+		case 5:
+		 if(m100_data_refresh&&!dji_rc_miss&&m100.GPS_STATUS>=1)
+		 {	LEDRGB_COLOR(WHITE); fc_state_beep[2]=BEEP_STATE3;} 
+			 else if(m100.refresh&&!dji_rc_miss)
+			 {LEDRGB_COLOR(BLUE);fc_state_beep[2]=BEEP_STATE2;} 
+			 else
+			 {LEDRGB_COLOR(RED);fc_state_beep[2]=BEEP_STATE1; }
+		if(cnt_idle++>0.1/0.05)
+		{idle_state=6;cnt_idle=0;}
+		break;
+		case 6:
+			LEDRGB_COLOR(BLACK);	
+		if(cnt_idle++>1.2/0.05)
+		{idle_state=0;cnt_idle=0;}
+		break;
+	}
+  Play_Music_Task(BEEP_STATE,dt);
 }
 }
 

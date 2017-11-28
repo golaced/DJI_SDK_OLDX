@@ -588,14 +588,14 @@
               <FilePath>..\HARDWARE\IIC\iic_fc.c</FilePath>
             </File>
             <File>
-              <FileName>flash.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\IIC\flash.c</FilePath>
-            </File>
-            <File>
               <FileName>led_fc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\IIC\led_fc.c</FilePath>
+            </File>
+            <File>
+              <FileName>flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IIC\flash.c</FilePath>
             </File>
             <File>
               <FileName>parameter.c</FileName>

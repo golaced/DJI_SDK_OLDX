@@ -25,7 +25,8 @@ float d_flow_watch[2];
 float  integrator[2];
 float flow_control_out,flow_k=30;
 float yaw_exp_global=0;
-float yaw_pid[3]={1,0,0};
+float yaw_pid[3]={0.1,0,0};
+float yaw_ero;
 float yaw_control(float in)
 { 
 	float exp=0;
@@ -36,7 +37,7 @@ float yaw_control(float in)
 		exp=in;
 	else
 		exp=yaw_exp_global;
-	ero=To_180_degrees(exp-m100.Yaw);
+	yaw_ero=ero=LIMIT(To_180_degrees(exp-m100.Yaw),-90,90);
 	pid[0]=yaw_pid[0]*ero;
 	pid[1]=yaw_pid[1]*(ero-eror);
 	
@@ -201,6 +202,7 @@ u8 m100_gps_in=0;
 #define CHECK_SCREEN_WHILE_FLYING 0//在巡航状态也检测屏幕
 #define USE_MISS_SCAN 1 //使用丢失左右侧飞
 #define MAX_TARGET 5//最多射击数字
+#define PWM_DJ_DOWN_DEAD 100 //云台垂直死区
 float dead_pix_check=0.365;//图像对准中心射击触发
 float CHECK_OVER_TIME=60;//最长数字识别时间(s)
 float MAX_TRACK_TIME=26*2;//对准状态最长时间 (s)
@@ -217,6 +219,7 @@ u8 fake_target[FAKE_TAR_NUM]={8,7,6,5,4,3,2,1,0};
 u8 fake_target_force=0;
 u8 fake_target_flag=0;
 u8 shoot_finish_cnt=0;
+float test_point[2]={31.0,100.3};
 void AUTO_LAND_FLYUP(float T)
 {static u8 state,init,cnt_retry;
  static float sonar_r,bmp_r,bmp_thr;
@@ -240,7 +243,7 @@ void AUTO_LAND_FLYUP(float T)
 	}
 	if(Rc_Pwm_Inr_mine[RC_THR]<200+1000)
 	{sonar_r=SONAR_SET_HIGHT+0.05;bmp_r=ALT_POS_BMP;}
-	tar_bearing_test=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);  
+	tar_bearing_test=navCalcBearing(31.0,100,test_point[0],test_point[1]);  
 //state_change 
 	switch(state)
 	{//-------------------------------------------------起飞
@@ -269,6 +272,10 @@ void AUTO_LAND_FLYUP(float T)
 						state=SU_MAP2; Clear_map();
 						#elif defined(DEBUG_QR_LAND)
 						state=SU_TO_CHECK_POS;
+						#elif defined(DEBUG_QR_LAND_DIR)
+						state=SU_HOLD;
+						#elif defined(DEBUG_YAW_TUNNING)
+						state=SU_HOLD;
 						#else
 						state=SU_HOLD;
 						#endif
@@ -293,6 +300,8 @@ void AUTO_LAND_FLYUP(float T)
 						state=SU_MAP2; Clear_map();
 						#elif defined(DEBUG_QR_LAND)
 						state=SU_TO_CHECK_POS;
+						#elif defined(DEBUG_QR_LAND_DIR)
+						state=SU_HOLD;
 						#else
 						state=SU_TO_CHECK_POS;
 						#endif
@@ -347,12 +356,18 @@ void AUTO_LAND_FLYUP(float T)
 				
 							 if(cnt[1]++>4.666*0.618/T)
 							 {
+							#if defined(DEBUG_QR_LAND_DIR)
+							state=SD_CIRCLE_MID_DOWN;
+							#elif defined(DEBUG_YAW_TUNNING)
+							state=SU_HOLD;	 
+							#else	 
 							 #if USE_MAP
 							 state=SU_MAP1;
 							 Clear_map();
                #else								 
 							 state=SU_TO_CHECK_POS;
 							 #endif	 
+							#endif		 
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					}
 			   
@@ -1135,30 +1150,30 @@ void AUTO_LAND_FLYUP(float T)
 							else
 							cnt[1]=0;	
 
-							if(qr.check&&qr.connect&&ABS(PWM_DJ[0]-PWM_DJ_DOWN)<100)//过程中垂直看见		 
+							if(qr.check&&qr.connect)//过程中看见		 
 							cnt[4]++;
 							else 
 							cnt[4]=0;
 							
               thr_sel[0]++;
 							
-							if(thr_sel[0]>10/T)//超时降落
+							if(thr_sel[0]>30/T)//超时降落
 							{ 
 							 state=SD_CIRCLE_MID_DOWN;
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
 							}		
 				      if(qr.connect&&cnt[4]>0.4/T)//过程中看见
 							{ 
-							 state=SD_CIRCLE_MID_DOWN;
+							 state=SU_TO_QR_FIRST;
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
 							}	
 							else if(cnt[1]>1.2/T)//到达后未看见
 							{ 
-							 if(get_qr_pos&&ABS(qr_local_pos[2]<100)&&qr.connect)//有二维码
-							 state=SU_TO_QR_FIRST;
-							 else
-							 state=SD_QR_SEARCH;
-				 
+							 #if !QR_LAND_USE_MARK_GPS	
+							 state=SD_CIRCLE_MID_DOWN;	
+               #else
+							 state=SD_QR_SEARCH;	
+               #endif								
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;    
 							}				
 					}
@@ -1174,21 +1189,20 @@ void AUTO_LAND_FLYUP(float T)
 						 mode.use_qr_as_gps_tar=1;
 				  if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 
-							if(((qr.check&&qr.connect)||//过程中看见并到达二维码估计位置附近
+							if((//二维码估计位置附近
 									(fabs(nav_Data.gps_ero_dis_lpf[0])<GPS_ERO&&fabs(nav_Data.gps_ero_dis_lpf[1])<GPS_ERO))&&(gpsx.gpssta>=1&&gpsx.rmc_mode=='A'))
 							cnt[1]++;
 							else
 							cnt[1]=0;
 							
-							if(qr.check&&qr.connect&&ABS(PWM_DJ[0]-PWM_DJ_DOWN)<100)//过程中垂直看见		 
+							if(qr.check&&qr.connect&&ABS(PWM_DJ[0]-PWM_DJ_DOWN)<PWM_DJ_DOWN_DEAD)//过程中垂直看见		 
 							cnt[4]++;
 							else 
 							cnt[4]=0;
 							
-							
 							thr_sel[0]++;
 							
-							if(thr_sel[0]>10/T)//超时降落
+							if(thr_sel[0]>30/T)//超时降落
 							{ 
 							 state=SD_CIRCLE_MID_DOWN;
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
@@ -1260,15 +1274,15 @@ void AUTO_LAND_FLYUP(float T)
 	if(state_reg!=state)state_last=state;
 	state_reg=state;
 	
-#if defined(DEBUG_HOLD_WALL) 
-mode.en_rth_mine=0;
-#elif defined(DEBUG_TRACK) 
-mode.en_rth_mine=0;
-#elif defined(DEBUG_HOLD_HEIGHT) 	
-mode.en_rth_mine=0;
-#elif defined(DEBUG_TARGET_AVOID) 	
-mode.en_rth_mine=0;	
-#endif	
+	#if defined(DEBUG_HOLD_WALL) 
+	mode.en_rth_mine=0;
+	#elif defined(DEBUG_TRACK) 
+	mode.en_rth_mine=0;
+	#elif defined(DEBUG_HOLD_HEIGHT) 	
+	mode.en_rth_mine=0;
+	#elif defined(DEBUG_TARGET_AVOID) 	
+	mode.en_rth_mine=0;	
+	#endif	
 //超时处理	
 	#if SHOOT_DIRECT 
 	if(state==SD_SHOOT||state==SG_LOW_CHECK||state==SD_HOLD2)
@@ -1485,7 +1499,13 @@ mode.en_rth_mine=0;
 					if((ABS(ultra_ctrl_head.err1)<1000))	
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
+	        #if defined(DEBUG_YAW_TUNNING)
+					tar_bearing=-90;
+					nav_land[YAWr]=yaw_control(tar_bearing);
+					#else
 					nav_land[YAWr]=0; 
+					#endif
+					
 					 	if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
 					if(mode.test2&&ALT_POS_SONAR_HEAD_LASER_SCANER<AVOID[1]&&ALT_POS_SONAR2>0.3&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1583,35 +1603,67 @@ mode.en_rth_mine=0;
 			break;	
 
 
-	     case SD_TO_HOME://导航到home			
-						tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
-						nav_land[PITr]=nav_gps[PITr];
-						nav_land[ROLr]=nav_gps[ROLr];
+	     case SD_TO_HOME://导航到home	    
             #if defined(DEBUG_QR_LAND)
-			      tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);  
-			      nav_land[YAWr]=yaw_control(tar_bearing);
+						  #if QR_LAND_USE_MARK_GPS	
+                if(get_qr_pos){
+								tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);	
+                tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
+								}
+								else{
+								tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);
+								tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];	
+								}
+								
+								if(qr.connect&&qr.check)
+								{nav_land[YAWr]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-300,0+300);yaw_ero=0;}
+								else
+                nav_land[YAWr]=yaw_control(tar_bearing);								
+              #else			 
+								tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
+								nav_land[YAWr]=0;
+			        #endif
+							if(ABS(yaw_ero<20)){
+							nav_land[PITr]=nav_gps[PITr];
+							nav_land[ROLr]=nav_gps[ROLr];	
+							}else
+							{
+							nav_land[PITr]=nav_gps[PITr]/2;
+							nav_land[ROLr]=nav_gps[ROLr]/2;	
+							}
 						#else
-            nav_land[YAWr]=0;
+							tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
+							nav_land[PITr]=nav_gps[PITr];
+							nav_land[ROLr]=nav_gps[ROLr];
+							nav_land[YAWr]=0;
             #endif							 
 			break;	 	
 
 	    case SU_TO_QR_FIRST://导航到第一次看到QR处
-				
-			      temp= navCalcDistance(qr_gps_pos[0],qr_gps_pos[1],gps_data.latitude,gps_data.longitude);
-			      if(temp<100)
-						{tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
-						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);}
+            tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
+						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);
+						if(qr.connect&&qr.check)
+						{nav_land[YAWr]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-300,0+300);yaw_ero=0;}
 						else
-						{tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
-						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);}	
-						nav_land[PITr]=nav_gps[PITr];
-						nav_land[ROLr]=nav_gps[ROLr];     
-			      nav_land[YAWr]=yaw_control(tar_bearing);
+						nav_land[YAWr]=yaw_control(tar_bearing);	
+			      
+						if(ABS(yaw_ero<20)){
+	          nav_land[PITr]=nav_gps[PITr];
+						nav_land[ROLr]=nav_gps[ROLr];	
+            }else
+						{
+	          nav_land[PITr]=nav_gps[PITr]/2;
+						nav_land[ROLr]=nav_gps[ROLr]/2;	
+            }   
+			      #if !QR_LAND_USE_MARK_GPS
+						nav_land[YAWr]=0;
+						#endif
 			break;	
 			
 			case SD_QR_SEARCH://
 						tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
-			      nav_land[YAWr]=10;
+			      nav_land[YAWr]=50;
+			      nav_land[PITr]=nav_land[ROLr]=0;
 			break;
 //circe track
 	     case SD_CIRCLE_MID_DOWN://			
@@ -1758,9 +1810,13 @@ mode.en_rth_mine=0;
 			else
 			Rc_Pwm_Out_mine[RC_THR]=Rc_Pwm_Inr_mine[RC_THR];
 		break;	
-		case SD_CIRCLE_MID_DOWN://land check
+		case SD_CIRCLE_MID_DOWN://land to check
 			#if USE_M100
-		  Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.8;
+		   #if defined(DEBUG_QR_LAND_DIR)
+		   Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-0*0.8;
+		   #else
+		   Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.8;
+		   #endif
 		  #else
 			Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-60;
 		  #endif

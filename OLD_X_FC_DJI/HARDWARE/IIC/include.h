@@ -277,9 +277,11 @@ void Flow_set_tar(float set);
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
 #define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
-#define DEBUG_IN_ROOM 1//屋内测试
+#define DEBUG_IN_ROOM 0//屋内测试
 //#define USE_PAN_800  //使用飞宇三轴云台
 #define USE_PAN_NUM1  //Pix机架云台1号
+#define PAN_TEST 0    //云台强制角度测试
+#define QR_LAND_USE_MARK_GPS 0 //0->垂直镜头返航
 #define RISK_MODE 0   //冒险模式
 //云台初始化位置
 #if defined(USE_PAN_800)
@@ -333,7 +335,9 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
-#define DEBUG_QR_LAND 
+//#define DEBUG_QR_LAND 
+#define DEBUG_QR_LAND_DIR //原地起降测试 
 //#define DEBUG_HOVER_GPS
+//#define DEBUG_YAW_TUNNING //航向调参模式
 #endif
 
