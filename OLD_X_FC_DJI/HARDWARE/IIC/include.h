@@ -273,17 +273,31 @@ void Flow_set_tar(float set);
 #define TEST_GPS 0
 #define USE_M100 1
 #define USE_PX4 1
+#define SPD_GAIN_EQUAL 1 //导航增益对称
+
 #define USE_MAP 1 //使用MAP信息
 #define NAV_ERO_USE_LINE 0 //使用航向直线误差作为判断
 #define MISSION_USE_FAKE_TARGET 1//没有屏幕测试
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
 #define DEBUG_IN_ROOM 0//屋内测试
-//#define USE_PAN_800  //使用飞宇三轴云台
-#define USE_PAN_NUM1  //Pix机架云台1号
 #define PAN_TEST 0    //云台强制角度测试
 #define QR_LAND_USE_MARK_GPS 0 //0->垂直镜头返航
 #define RISK_MODE 0   //冒险模式
+
+#if USE_M100
+#if USE_PX4
+#define SONAR_SET_HIGHT 0.1
+#else
+#define SONAR_SET_HIGHT 0.19599
+#endif
+#else
+#define SONAR_SET_HIGHT 0.14
+#endif
+
 //云台初始化位置
+//#define USE_PAN_800  //使用飞宇三轴云台
+#define USE_PAN_NUM1  //Pix机架云台1号
+
 #if defined(USE_PAN_800)
 #define  PWM_DJ0 1500
 #define	 PWM_DJ1 1500
@@ -291,11 +305,23 @@ void Flow_set_tar(float set);
 #elif defined(USE_PAN_NUM1)
 #define  PWM_DJ0 1300//Pitch
 #define	 PWM_DJ1 1500//Yaw
-#define	 PWM_DJ_DOWN 1630
+#define	 PWM_DJ_DOWN 1680
 #else
 #define  PWM_DJ0 1630//Pitch
 #define	 PWM_DJ1 1500//Yaw
 #define	 PWM_DJ_DOWN 800
+#endif
+
+#if USE_M100
+#define MAX_NAV_RC 250//180
+#else
+#define MAX_NAV_RC 180//180
+#endif
+
+#if USE_PX4
+#define DEAD_NAV_RC 150
+#else
+#define DEAD_NAV_RC 100
 #endif
 
 #if USE_M100
@@ -309,6 +335,7 @@ void Flow_set_tar(float set);
 #define  OFF_RC_YAW 1520
 #define  OFF_RC_THR 1520
 #endif
+
 extern double home_point[2],check_way_point[2];//={39.962704, 116.3038848};
 extern double way_point[2][2];//={39.9626144, 116.3038848,  39.962736, 116.303872};
 extern double tar_point_globle[2],tar_point_globler[2],tar_now_gps[2];//={39.962704, 116.3038848};
@@ -335,9 +362,9 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
-//#define DEBUG_QR_LAND 
-#define DEBUG_QR_LAND_DIR //原地起降测试 
-//#define DEBUG_HOVER_GPS
+#define DEBUG_QR_LAND  //UP->SU_TO_CHECK_POS(6)->SD_TO_HOME(26)->SD_CIRCLE_MID_DOWN(19)
+//#define DEBUG_QR_LAND_DIR //原地起降测试 
+//#define DEBUG_HOVER_GPS   
 //#define DEBUG_YAW_TUNNING //航向调参模式
 #endif
 

@@ -150,7 +150,7 @@ void Play_Music_Task(u8 sel,float dt)//<-----------------
 		break;
 		case BEEP_GPS_SAVE:
 		beep_gps_save[0]=beep_gps_save[2]=fc_save_gps_beep;	
-		Play_Music_In_Task(beep_gps_save,0,sizeof(beep_state)/2,1,dt);		
+		Play_Music_In_Task(beep_gps_save,0,sizeof(beep_gps_save)/2,1,dt);		
 		break;
 		default:
 			Tone(0,0);

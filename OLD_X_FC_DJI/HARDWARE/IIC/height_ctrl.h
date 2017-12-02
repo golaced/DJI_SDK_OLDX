@@ -61,6 +61,7 @@ extern float adrc_out;
 #define ULTRA_SPEED 		 300    // mm/s
 #define ULTRA_MAX_HEIGHT 8000   // mm
 #define ULTRA_INT        300    // »ý·Ö·ù¶È
+extern float SONAR_SET_HIGHT ;
 extern _st_height_pid_v gps_ctrl[2];
 extern _st_height_pid gps_pid;
 extern float exp_spd_zv,thr_use,thr_in_view;

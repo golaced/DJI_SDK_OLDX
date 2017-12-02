@@ -36,7 +36,7 @@ OS_FLAG_GRP * flags_key;	//按键信号量集
 void * MsgGrp[256];			//消息队列存储地址,最大支持256个消息
 u8 en_read=1;
 int main(void)
- { 
+  { 
 	NVIC_PriorityGroupConfig(NVIC_GROUP);//设置系统中断优先级分组2
 	SysTick_Configuration();
 	delay_init(168);  //初始化延时函数
@@ -116,8 +116,13 @@ int main(void)
 	track.control_k=0.325*0.68;
 	track.control_k_miss=0.325;
 	#else
-  track.control_k=0.325;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
-	track.control_k_miss=0.325;//云台控制增益2.8;//;
+		#if USE_PX4
+		track.control_k=0.28;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
+		track.control_k_miss=0.28;//云台控制增益2.8;//;
+		#else
+		track.control_k=0.325;//云台控制增益3.8;//1.325;//2;//---------------------circle_K
+		track.control_k_miss=0.325;//云台控制增益2.8;//;
+		#endif
 	#endif
 	track.control_yaw=0.3;//云台对准左右增益
 #if USE_M100

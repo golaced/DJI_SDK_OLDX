@@ -25,7 +25,7 @@ float d_flow_watch[2];
 float  integrator[2];
 float flow_control_out,flow_k=30;
 float yaw_exp_global=0;
-float yaw_pid[3]={0.1,0,0};
+float yaw_pid[3]={0.68,0,0};
 float yaw_ero;
 float yaw_control(float in)
 { 
@@ -38,10 +38,10 @@ float yaw_control(float in)
 	else
 		exp=yaw_exp_global;
 	yaw_ero=ero=LIMIT(To_180_degrees(exp-m100.Yaw),-90,90);
-	pid[0]=yaw_pid[0]*ero;
-	pid[1]=yaw_pid[1]*(ero-eror);
-	
+	pid[0]=yaw_pid[0]*ero*10;
+	pid[2]=yaw_pid[2]*(ero-eror);
 	eror=ero;
+	return pid[0]+pid[2];
 }	
 
 void Flow_reset_pos(void)
@@ -143,15 +143,7 @@ u8 state_pass=0;
 u16 AUTO_UP_CUARVE[]={1580,1660,1660,1655,1650,1650,1650,1650,1650};
 u16 AUTO_DOWN_CUARVE[]={1500,1500-50,1500-150,1500-150,1500-200,1500-200};
 u16 AUTO_DOWN_CUARVE1[]={1500-150,1500-150,1500-100,1500-100,1500-80,1500-80};
-#if USE_M100
-#if USE_PX4
-float SONAR_SET_HIGHT =0.1;
-#else
-float SONAR_SET_HIGHT =0.19599;
-#endif
-#else
-float SONAR_SET_HIGHT =0.14;
-#endif
+
 float AUTO_FLY_HEIGHT =2.5;
 float SONAR_CHECK_DEAD =0.1;
 
@@ -159,13 +151,12 @@ float AUTO_LAND_HEIGHT_1= 2.5;// 3.5 //bmp check
 float AUTO_LAND_HEIGHT_2= 1.6;//1.8
 float AUTO_LAND_HEIGHT_3= 0.0925;
 
-float MINE_LAND_HIGH= 0.3;
+float MINE_LAND_HIGH= SONAR_SET_HIGHT*2;
 float AUTO_LAND_SPEED_DEAD =0.2;
 u8 state_v;
 u32 cnt[10]={0};
 float baro_ground_high;
 float nav_land[4];
-#define DEAD_NAV_RC 80
 #define AVOID_RC 95
 #if USE_M100
 float AVOID[2]={1.35+0.4,1.35+0.4};
@@ -302,6 +293,8 @@ void AUTO_LAND_FLYUP(float T)
 						state=SU_TO_CHECK_POS;
 						#elif defined(DEBUG_QR_LAND_DIR)
 						state=SU_HOLD;
+						#elif defined(DEBUG_YAW_TUNNING)
+						state=SU_HOLD;
 						#else
 						state=SU_TO_CHECK_POS;
 						#endif
@@ -370,8 +363,9 @@ void AUTO_LAND_FLYUP(float T)
 							#endif		 
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
 					}
-			   
+			   #if !DEBUG_IN_ROOM		
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break;
     //--------------------------------------MAP--------------------------------------------
 	  case SU_MAP1://start pos
@@ -1162,9 +1156,14 @@ void AUTO_LAND_FLYUP(float T)
 							 state=SD_CIRCLE_MID_DOWN;
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
 							}		
-				      if(qr.connect&&cnt[4]>0.4/T)//过程中看见
+				      if(qr.check&&cnt[4]>0.3/T)//过程中看见
 							{ 
+							 #if QR_LAND_USE_MARK_GPS	
 							 state=SU_TO_QR_FIRST;
+							 #else
+							 state=SD_CIRCLE_MID_DOWN;	
+               #endif	
+								
 							 cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;     
 							}	
 							else if(cnt[1]>1.2/T)//到达后未看见
@@ -1185,7 +1184,6 @@ void AUTO_LAND_FLYUP(float T)
 				 #endif
 		break; 		 
 	  case SU_TO_QR_FIRST://巡航到第一次看到qr的GPS位置8
-					if(mode.qr_cal_by_px)
 						 mode.use_qr_as_gps_tar=1;
 				  if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
 
@@ -1214,8 +1212,10 @@ void AUTO_LAND_FLYUP(float T)
 					}
 			
 					if(over_time==2)
-					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	
+         #if !DEBUG_IN_ROOM							
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break; 	
     case SD_QR_SEARCH://原地查找二维码  WT
 				  if(ALT_POS_SONAR2>MINE_LAND_HIGH-0.15&&ABS((int)Rc_Pwm_Inr_mine[RC_PITCH]-OFF_RC_PIT)<DEAD_NAV_RC&&ABS((int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL)<DEAD_NAV_RC){//跟踪到位
@@ -1232,21 +1232,28 @@ void AUTO_LAND_FLYUP(float T)
 							 }	 
 					}		
 					if(over_time==2)
-					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}	 
+					  {state=SD_CIRCLE_MID_DOWN;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=0;mode_change=1;}
+         #if !DEBUG_IN_ROOM							
 				 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}
+				 #endif
 		break; 
 				 
 		case SD_CIRCLE_MID_DOWN://   在圆死区内中速下降
 			if(((int)Rc_Pwm_Inr_mine[RC_THR]>400+1000)&&((int)Rc_Pwm_Inr_mine[RC_THR]<600+1000)){
 				 if(ALT_POS_SONAR2<SONAR_SET_HIGHT+0.25)//&&ABS(ALT_POS_BMP-bmp_r)<0.866)//Sonar check 0.5m
 				 {if(cnt[4]++>1/T)
-					{state=SD_CHECK_G;cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt[2]=0;mode_change=1;}
+					{
+					#if !DEBUG_IN_ROOM	
+				  state=SD_CHECK_G;
+					#endif
+					cnt_circle_check=thr_sel[1]=thr_sel[2]=cnt[4]=cnt[1]=cnt[2]=0;mode_change=1;}
 				 }
 				 else
 					 cnt[4]=0;
 				}
-       
+       #if !DEBUG_IN_ROOM	
 			 if(pwmin.sel_in==0){if(cnt[3]++>1.5/T){mode_change=1;state=SD_SAFE;cnt[3]=0;}}//restart until land
+			 #endif
 				break;
 		case SD_CHECK_G://shut motor  电机停转检测
 			if(ABS(ALT_VEL_SONAR)<AUTO_LAND_SPEED_DEAD&&ALT_POS_SONAR2<SONAR_SET_HIGHT+0.25)//
@@ -1323,7 +1330,15 @@ void AUTO_LAND_FLYUP(float T)
 						nav_land[ROLr]=nav_gps[ROLr];
 			      nav_land[YAWr]=0;
 			break;
-			
+			case SU_HOLD:
+				  #if defined(DEBUG_YAW_TUNNING)
+			    nav_land[PITr]=nav_land[ROLr]=0;
+					tar_bearing=-90;
+					nav_land[YAWr]=yaw_control(tar_bearing);
+					#else
+			    nav_land[YAWr]=nav_land[PITr]=nav_land[ROLr]=0;
+			    #endif
+			break;
 			//----------------------------MAP
       case SU_MAP1://MAP导航到起始点
 						tar_point_globle[0]=way_point[0][0]; tar_point_globle[1]=way_point[0][1];
@@ -1499,12 +1514,7 @@ void AUTO_LAND_FLYUP(float T)
 					if((ABS(ultra_ctrl_head.err1)<1000))	
           #endif						
 			    nav_land[ROLr]=LIMIT(nav_gps[ROLr],-track.forward,track.forward);
-	        #if defined(DEBUG_YAW_TUNNING)
-					tar_bearing=-90;
-					nav_land[YAWr]=yaw_control(tar_bearing);
-					#else
 					nav_land[YAWr]=0; 
-					#endif
 					
 					 	if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]*0.8&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*1.5*k_m100[4];
 					else if(mode.test3&&ALT_POS_SONAR_HEAD<AVOID[0]&&ALT_POS_SONAR2>0.3&&SONAR_HEAD_CHECK[0]&&S_head>88)nav_land[PITr]=-AVOID_RC*k_m100[4];
@@ -1605,8 +1615,7 @@ void AUTO_LAND_FLYUP(float T)
 
 	     case SD_TO_HOME://导航到home	    
             #if defined(DEBUG_QR_LAND)
-						  #if QR_LAND_USE_MARK_GPS	
-                if(get_qr_pos){
+			        if(get_qr_pos){
 								tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);	
                 tar_point_globle[0]=qr_gps_pos[0]; tar_point_globle[1]=qr_gps_pos[1];
 								}
@@ -1614,22 +1623,25 @@ void AUTO_LAND_FLYUP(float T)
 								tar_bearing=navCalcBearing(m100.Lat,m100.Lon,home_point[0],home_point[1]);
 								tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];	
 								}
-								
+										 
+						  //#if QR_LAND_USE_MARK_GPS	  
 								if(qr.connect&&qr.check)
 								{nav_land[YAWr]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-300,0+300);yaw_ero=0;}
+								else if(nav_Data.gps_ero_dis_lpf[2]>3)
+                nav_land[YAWr]=yaw_control(tar_bearing);		
 								else
-                nav_land[YAWr]=yaw_control(tar_bearing);								
-              #else			 
-								tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
-								nav_land[YAWr]=0;
-			        #endif
-							if(ABS(yaw_ero<20)){
+								nav_land[YAWr]=0;	
+//              #else			 
+//								tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
+//								nav_land[YAWr]=0;
+//			        #endif
+							if(ABS(yaw_ero<10)){
 							nav_land[PITr]=nav_gps[PITr];
 							nav_land[ROLr]=nav_gps[ROLr];	
 							}else
 							{
-							nav_land[PITr]=nav_gps[PITr]/2;
-							nav_land[ROLr]=nav_gps[ROLr]/2;	
+							nav_land[PITr]=nav_gps[PITr]/4;
+							nav_land[ROLr]=nav_gps[ROLr]/4;	
 							}
 						#else
 							tar_point_globle[0]=home_point[0]; tar_point_globle[1]=home_point[1];
@@ -1644,10 +1656,12 @@ void AUTO_LAND_FLYUP(float T)
 						tar_bearing=navCalcBearing(m100.Lat,m100.Lon,qr_gps_pos[0],qr_gps_pos[1]);
 						if(qr.connect&&qr.check)
 						{nav_land[YAWr]=LIMIT(-track.control_yaw*(my_deathzoom(PWM_DJ[1]-PWM_DJ1,0))+0,0-300,0+300);yaw_ero=0;}
+						else if(nav_Data.gps_ero_dis_lpf[2]>3)
+						nav_land[YAWr]=yaw_control(tar_bearing);		
 						else
-						nav_land[YAWr]=yaw_control(tar_bearing);	
+						nav_land[YAWr]=0;		
 			      
-						if(ABS(yaw_ero<20)){
+						if(ABS(yaw_ero<10)){
 	          nav_land[PITr]=nav_gps[PITr];
 						nav_land[ROLr]=nav_gps[ROLr];	
             }else
@@ -1676,7 +1690,10 @@ void AUTO_LAND_FLYUP(float T)
 					{nav_land[PITr]=nav_land[ROLr]=nav_land[YAWr]=0;}
 			break;
 		}
-
+      if(mode.en_dji_h&&!dji_rst_protect&&((Rc_Pwm_Inr_mine[RC_YAW]>450+1000)&&(Rc_Pwm_Inr_mine[RC_YAW]<550+1000)))
+			Rc_Pwm_Out_mine[RC_YAW]=LIMIT(nav_land[YAWr]+OFF_RC_YAW,OFF_RC_YAW-MAX_NAV_RC,OFF_RC_YAW+MAX_NAV_RC);
+			else
+			Rc_Pwm_Out_mine[RC_YAW]=Rc_Pwm_Inr_mine[RC_THR];
 
 	#if USE_MAP		
 	if(state>SG_LOW_CHECK&&(state==SU_MAP1||state==SU_MAP2||state==SU_MAP3))
@@ -1811,15 +1828,29 @@ void AUTO_LAND_FLYUP(float T)
 			Rc_Pwm_Out_mine[RC_THR]=Rc_Pwm_Inr_mine[RC_THR];
 		break;	
 		case SD_CIRCLE_MID_DOWN://land to check
+			if(mode.en_dji_h&&!dji_rst_protect&&((Rc_Pwm_Inr_mine[RC_THR]>450+1000)&&(Rc_Pwm_Inr_mine[RC_THR]<550+1000)))
 			#if USE_M100
 		   #if defined(DEBUG_QR_LAND_DIR)
 		   Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-0*0.8;
 		   #else
-		   Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.8;
+				 #if USE_PX4
+			   if(qr.check&&qr.connect)
+				 Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.123;
+				 else if(get_qr_pos&&nav_Data.gps_ero_dis_lpf[2]<1.618)
+				 Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.123; 
+				 else if(ALT_POS_SONAR2<1.123)
+				 Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.123; 
+				 else
+				 Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR+100*0.05;
+				 #else
+				 Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-100*0.8;
+				 #endif
 		   #endif
 		  #else
 			Rc_Pwm_Out_mine[RC_THR]=OFF_RC_THR-60;
 		  #endif
+			else
+			Rc_Pwm_Out_mine[RC_THR]=Rc_Pwm_Inr_mine[RC_THR];	
 		break;
 		case SD_CHECK_G://shut motor
 			#if USE_M100

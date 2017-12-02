@@ -652,6 +652,11 @@
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\IIC\mpu9250.c</FilePath>
             </File>
+            <File>
+              <FileName>beep.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IIC\beep.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

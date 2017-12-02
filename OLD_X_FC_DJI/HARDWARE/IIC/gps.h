@@ -220,7 +220,7 @@ typedef struct {
   float holdSpeedN;
 	float holdSpeedE;
 	float velX,velY;
-	float gps_ero_dis_lpf[2];
+	float gps_ero_dis_lpf[3];
 	float dis_ero;
 } navigation_gps;
 

@@ -221,22 +221,23 @@ UsartSend_M100(mode);//01001010 flag???
 	m100_z_g = z;
 	m100_yaw_g = yaw;
 	
-	float temp1 = Moving_Median(24,3, my_deathzoom_2(x-1500, 5));
+	float temp1;
+	temp1 = my_deathzoom_2(x-1500, 5);
 	_temp = (vs16)(temp1)/100.0*3*100/5;//x;
 	UsartSend_M100(BYTE1(_temp));//x
 	UsartSend_M100(BYTE0(_temp));//
 	
-	temp1 =  Moving_Median(25,3,my_deathzoom_2(y-1500, 5));
+	temp1 =  my_deathzoom_2(y-1500, 5);
 	_temp = (vs16)(temp1)/100.0*3*100/5;
 	UsartSend_M100(BYTE1(_temp));//y
 	UsartSend_M100(BYTE0(_temp));
 	
-	temp1 =  Moving_Median(26,3,my_deathzoom_2(z-1500, 5));
+	temp1 =  my_deathzoom_2(z-1500, 5);
 	_temp = (vs16)(temp1)/100.0*3*100/5;
 	UsartSend_M100(BYTE1(_temp));//z
 	UsartSend_M100(BYTE0(_temp));
 	
-	temp1 =  Moving_Median(27,3,my_deathzoom_2(yaw-1500, 5));
+	temp1 =  my_deathzoom_2(yaw-1500, 5);
 	_temp = (vs16)(temp1)/100.0*3*100/2;
 	UsartSend_M100(BYTE1(_temp));//yaw
 	UsartSend_M100(BYTE0(_temp));

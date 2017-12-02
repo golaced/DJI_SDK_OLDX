@@ -90,17 +90,27 @@ float set_angle_dj[3];
 float kp_dj[3]={10,50,8},kd_dj[3],i_yaw;
 float k_scan=0.25;//0.25;
 u8 SCAN_RANGE=88;//116;
+#if USE_PX4
+int flag_yun[2]={1,1};
+#else
 int flag_yun[2]={-1,1};
+#endif
 u16 Rc_Pwm_Out_mine_USE[4];
 float k_m100_gps[3]=  {2.26,2.26,0.66}; //p r t
 float k_m100_scan[3]= {2.26,2.26,0.66};
 float k_m100_track[3]={2.88,0.88,0.66};
 float k_m100_shoot[3]={2.88,0.88,0.66};
+float k_m100_land[3]={1,1,0.66};
 float k_m100_laser_avoid=0.3888;
 float k_m100_yaw=1;
 float k_dj_yun[3]={1,1,1};
+#if SPD_GAIN_EQUAL	
+float gain_global[2]={1,1};
+float risk_gain=1;
+#else
 float gain_global[2]={1.234,1};
 float risk_gain=2;
+#endif
 u8 en_track=1;
 float u_gain_by_ero(float in,float gain,u8 sel,float dead)
 {
@@ -127,12 +137,19 @@ void inner_task(void *pdata)
 	
 	#if USE_M100
 	#if USE_PX4	
-	Rc_Pwm_Inr_mine[RC_PITCH]=(float)LIMIT((m100.Rc_pit-1514)*1.46,-500,500)/1.*1+1500;	
-	Rc_Pwm_Inr_mine[RC_ROLL] =-(float)LIMIT((m100.Rc_rol-1514)*1.46,-500,500)/1.*1+1500;	
-	Rc_Pwm_Inr_mine[RC_YAW]=  -(float)LIMIT((m100.Rc_yaw-1514)*1.46,-500,500)/1.*1+1500;	
-	Rc_Pwm_Inr_mine[RC_THR]=  (float)LIMIT((m100.Rc_thr-1514)*1.46,-500,500)/1.*1+1500;	
-	Rc_Pwm_Inr_mine[RC_MODE]= (float)LIMIT((m100.Rc_mode-1514)*1.46,-500,500)/1.*1+1500;	
-	Rc_Pwm_Inr_mine[RC_GEAR]= (float)LIMIT((m100.Rc_gear-1514)*1.46,-500,500)/1.*1+1500;	
+		#if DEBUG_IN_ROOM
+		Rc_Pwm_Inr_mine[RC_PITCH]=1500;	
+		Rc_Pwm_Inr_mine[RC_ROLL] =1500;	
+		Rc_Pwm_Inr_mine[RC_YAW]=  1500;	
+		Rc_Pwm_Inr_mine[RC_THR]=  1500;	
+		#else
+		Rc_Pwm_Inr_mine[RC_PITCH]=(float)LIMIT((m100.Rc_pit-1514)*1.46,-500,500)/1.*1+1500;	
+		Rc_Pwm_Inr_mine[RC_ROLL] =-(float)LIMIT((m100.Rc_rol-1514)*1.46,-500,500)/1.*1+1500;	
+		Rc_Pwm_Inr_mine[RC_YAW]=  -(float)LIMIT((m100.Rc_yaw-1514)*1.46,-500,500)/1.*1+1500;	
+		Rc_Pwm_Inr_mine[RC_THR]=  (float)LIMIT((m100.Rc_thr-1514)*1.46,-500,500)/1.*1+1500;	
+		Rc_Pwm_Inr_mine[RC_MODE]= (float)LIMIT((m100.Rc_mode-1514)*1.46,-500,500)/1.*1+1500;	
+		Rc_Pwm_Inr_mine[RC_GEAR]= (float)LIMIT((m100.Rc_gear-1514)*1.46,-500,500)/1.*1+1500;	
+		#endif
 	#else
 	Rc_Pwm_Inr_mine[RC_PITCH]=(float)LIMIT(m100.Rc_pit,-10000,10000)/10000.*500+1500;	
 	Rc_Pwm_Inr_mine[RC_ROLL] =(float)LIMIT(m100.Rc_rol,-10000,10000)/10000.*500+1500;	
@@ -148,18 +165,13 @@ void inner_task(void *pdata)
 	#else
 	for(i=0;i<8;i++){	
 	if(Rc_Pwm_In_mine[i]<=pwmin.max+200&&Rc_Pwm_In_mine[i]>=pwmin.min-200){
-	if(i!=RC_THR)//avoid THR 
+	if(i!=RC_THR&&i!=RC_YAW)//avoid THR 
 	Rc_Pwm_Out_mine[i]=0.5*Rc_Pwm_Out_mine[i]+0.5*Rc_Pwm_In_mine[i];
 	Rc_Pwm_Inr_mine[i]=Rc_Pwm_In_mine[i];}
 	}
 	#endif
 	//----------------------------------------------------------------------------------------------
-	#if USE_M100
-	#define MAX_NAV_RC 200//180
-	#else
-	#define MAX_NAV_RC 180//180
-	#endif
-	#define DEAD_NAV_RC 100
+
 	#define USE_YAW 1
 	#define USE_CIRCLE 1
 	#if USE_CIRCLE
@@ -167,30 +179,29 @@ void inner_task(void *pdata)
 	int temp2=(int)Rc_Pwm_Inr_mine[RC_ROLL]-OFF_RC_ROL;
 	int temp3=(int)Rc_Pwm_Inr_mine[RC_YAW]-OFF_RC_YAW;
 	
-	#if RISK_MODE	
-	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
-		||state_v==SU_MAP1||state_v==SU_MAP_TO)
-	&&ABS(nav_Data.gps_ero_dis_lpf[0])>1.618*1000)//x
-	gain_global_use[0]=gain_global[0]*risk_gain;
-	else
-	gain_global_use[0]=gain_global[0];
-	
-	if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
-		||state_v==SU_MAP1||state_v==SU_MAP_TO)//y
-		&&ABS(nav_Data.gps_ero_dis_lpf[1])>1.618*1000)
-	{gain_global_use[1]=gain_global[1]*risk_gain;risk_gain_use=risk_gain;}
-	else
-	{gain_global_use[1]=gain_global[1];risk_gain_use=1;}
-	
-	if(risk_gain_use<0.5)risk_gain_use=1;
-	#else
-	risk_gain_use=1;
-	gain_global_use[0]=gain_global[0];
-	gain_global_use[1]=gain_global[1];
-	#endif
+		#if RISK_MODE	
+		if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
+			||state_v==SU_MAP1||state_v==SU_MAP_TO)
+		&&ABS(nav_Data.gps_ero_dis_lpf[0])>1.618*1000)//x
+		gain_global_use[0]=gain_global[0]*risk_gain;
+		else
+		gain_global_use[0]=gain_global[0];
+		
+		if((state_v==SD_TO_HOME||state_v==SU_TO_CHECK_POS
+			||state_v==SU_MAP1||state_v==SU_MAP_TO)//y
+			&&ABS(nav_Data.gps_ero_dis_lpf[1])>1.618*1000)
+		{gain_global_use[1]=gain_global[1]*risk_gain;risk_gain_use=risk_gain;}
+		else
+		{gain_global_use[1]=gain_global[1];risk_gain_use=1;}
+		
+		if(risk_gain_use<0.5)risk_gain_use=1;
+		#else
+		risk_gain_use=1;
+		gain_global_use[0]=gain_global[0];
+		gain_global_use[1]=gain_global[1];
+		#endif
 	
 	#if USE_M100
-	
    if(state_v==SD_TO_HOME)
 	 {
 	 k_m100[0]= u_gain_by_ero(k_m100_gps[0],1.618,0,1000)*gain_global_use[0];
@@ -213,8 +224,13 @@ void inner_task(void *pdata)
 	 }
 	 else if(state_v==SU_TO_CHECK_POS||state_v==SU_CHECK_TAR)
 	 {
-	 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
-   k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global_use[1];
+	 #if SPD_GAIN_EQUAL
+		 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+		 k_m100[1]=k_m100_gps[1]*gain_global_use[1]; 
+	 #else
+		 k_m100[0]=k_m100_gps[0]*gain_global_use[0];
+		 k_m100[1]=u_gain_by_ero(k_m100_gps[1],1.456,1,1000)*gain_global_use[1];
+	 #endif
 	 } 
 	 else if(state_v==SD_HOLD||state_v==SD_HOLD_BACK)
 	 {
@@ -238,6 +254,11 @@ void inner_task(void *pdata)
 		k_m100[1]=k_m100_shoot[1]*gain_global_use[1];
 		#endif	
 	 	 }
+	  else if(state_v==SD_CIRCLE_MID_DOWN)
+	 {
+   k_m100[0]=k_m100_land[0];
+	 k_m100[1]=k_m100_land[1];
+	 }		 
 	 else
 	 {
 	 k_m100[0]=gain_global_use[0];
@@ -250,17 +271,21 @@ void inner_task(void *pdata)
 	
 	
 	
-//¶ÔÔ²¿ØÖÆ 
+//Í¼Ïñµ¼º½Êä³ö 
 	if((ABS(temp1)<DEAD_NAV_RC)&&(ABS(temp2)<DEAD_NAV_RC)&&(ABS(temp3)<DEAD_NAV_RC))
 	{ 
-		#if USE_M100
-		if(!mode.dj_by_hand&&!dji_rst_protect&&ALT_POS_SONAR2>0.3){
+		#if USE_PX4
+		  if(ALT_POS_SONAR2>SONAR_SET_HIGHT*1.618*(!DEBUG_IN_ROOM)){
 		#else
-		if(!mode.dj_by_hand&&ALT_POS_SONAR2>0.3){//×¢Òâ---¿ªÆô
-		#endif
+			#if USE_M100
+			if(!mode.dj_by_hand&&!dji_rst_protect&&ALT_POS_SONAR2>SONAR_SET_HIGHT*1.618){
+			#else
+			if(!mode.dj_by_hand&&ALT_POS_SONAR2>SONAR_SET_HIGHT*1.618){//×¢Òâ---¿ªÆô
+			#endif
+		#endif		
 		Rc_Pwm_Out_mine[RC_PITCH]=LIMIT(nav_land[PITr]*k_m100[0]+OFF_RC_PIT,OFF_RC_PIT-MAX_NAV_RC*risk_gain_use,OFF_RC_PIT+MAX_NAV_RC*risk_gain_use);//×¢ÒâÒ£¿ØÆ«Ö´
 		Rc_Pwm_Out_mine[RC_ROLL] =LIMIT(nav_land[ROLr]*k_m100[1]+OFF_RC_ROL,OFF_RC_ROL-MAX_NAV_RC*risk_gain_use,OFF_RC_ROL+MAX_NAV_RC*risk_gain_use);
-		Rc_Pwm_Out_mine[RC_YAW]  =LIMIT(yaw_ctrl_out*k_m100_yaw+OFF_RC_YAW,OFF_RC_YAW-MAX_NAV_RC,OFF_RC_YAW+MAX_NAV_RC);	
+		//Rc_Pwm_Out_mine[RC_YAW]  =LIMIT(yaw_ctrl_out*k_m100_yaw+OFF_RC_YAW,OFF_RC_YAW-MAX_NAV_RC,OFF_RC_YAW+MAX_NAV_RC);	
 		}
 	}
 	#endif
@@ -269,12 +294,14 @@ void inner_task(void *pdata)
 	   #if !QR_LAND_USE_MARK_GPS
 	    en_track=0;
 	   #endif
+	#elif defined(DEBUG_QR_LAND_DIR)
+			en_track=0;
 	#endif
 	static u8 dj_mode_reg;
 	if((mode.dj_by_hand&&!dj_mode_reg))
 	{
-   PWM_DJ[0]=PWM_DJ0;
-	 PWM_DJ[1]=PWM_DJ1;
+    PWM_DJ[0]=PWM_DJ0;
+	  PWM_DJ[1]=PWM_DJ1;
 	}
 	if(mouse.check)
 	{
@@ -391,13 +418,18 @@ void inner_task(void *pdata)
 				gimbal_stink=0;
 			}else gimbal_stink=0;
 	#endif
-	#if !QR_LAND_USE_MARK_GPS
-  if(mode.en_qr_land&&(state_v==SD_TO_HOME||state_v==SU_TO_QR_FIRST||state_v==SD_CIRCLE_MID_DOWN))	
-  #else		
-	if(mode.en_qr_land&&(state_v==SD_CIRCLE_MID_DOWN))			
-  #endif		
-	PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ
-
+	#if defined(DEBUG_QR_LAND_DIR)
+    PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ
+  #else			
+		#if !QR_LAND_USE_MARK_GPS
+		  PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ	´¹Ö±¾µÍ·
+		#else		
+		if(state_v==SD_CIRCLE_MID_DOWN)
+			PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ		
+		#endif		
+		
+  #endif
+	
 	#if PAN_TEST
 	PWM_DJ[0]=DJ_TEST[0];//Pitch_DJ
 	PWM_DJ[1]=DJ_TEST[1];//Yaw_DJ
@@ -453,13 +485,7 @@ void inner_task(void *pdata)
 		track.dj_fly_line=0;
 	}
 	#else
-	if(
-//	#if !DEBUG_IN_ROOM
-//	(ABS(ultra_ctrl_head.err1)<168)&&
-//	#endif
-//	ABS(PWM_DJ[1]-PWM_DJ1)<88
-	gimbal_stink
-	)//pix track
+	if(gimbal_stink)//pix track
 	PWM_DJ[2]=LIMIT(track.control_yaw_pix*my_deathzoom_2(circle.x-160,8)+0,0-100,0+100);
 	else{//yun track
 		if(ABS((int)PWM_DJ[1]-1500)<Yaw_Follow_Dead)
@@ -565,7 +591,7 @@ void nrf_task(void *pdata)
 		
 		mode.en_qr_land=1;
 		mode.land_by_pix=1;
-		mode.qr_cal_by_px=1;
+		mode.qr_cal_by_px=0;
 		#endif
 		
 		EN_SHOOT(en_shoot||KEY[2]);
@@ -688,8 +714,8 @@ OS_STK M100_TASK_STK[M100_STK_SIZE];
 u8 en_vrc;
 u8 m100_control_mode = 0x4A;
 float k_m100[5]={1,1,1,1,1};//pit rol thr yaw avoid
-float k_px4[4]={0.008,0.008,0.008,0.005};
-float k_px4_rc[4]={0.008,0.008,0.005,0.005};
+float k_px4[4]={0.008,0.008,0.008,0.86};
+float k_px4_rc[4]={0.008,0.008,0.005,0.86};
 float tar_px4[4]={0};
 float tar_px4_rc[4]={0};
 u16 Rc_Pwm_Inr_mines[4]={1500,1500,1500,1500};
@@ -706,57 +732,59 @@ void m100_task(void *pdata)
 	tar_px4[1]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_PITCH]-1500)*k_px4[1],-10,10);
 	tar_px4[2]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_THR]-1500)*k_px4[2],-10,10);
 	tar_px4[3]=LIMIT(((float)Rc_Pwm_Out_mine_USE[RC_YAW]-1500)*k_px4[3],-33,33);
-	tar_px4_rc[0]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500,15))*k_px4_rc[0],-10,10);
-	tar_px4_rc[1]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500,15))*k_px4_rc[1],-10,10);
-	tar_px4_rc[2]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_THR]-1500,15))*k_px4_rc[2],-10,10);
-	tar_px4_rc[3]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mines[RC_YAW]-1500,15))*k_px4_rc[3],-33,33);
+	tar_px4_rc[0]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_ROLL]-1500,50))*k_px4_rc[0],-10,10);
+	tar_px4_rc[1]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_PITCH]-1500,50))*k_px4_rc[1],-10,10);
+	tar_px4_rc[2]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_THR]-1500,50))*k_px4_rc[2],-10,10);
+	tar_px4_rc[3]=LIMIT((my_deathzoom_2((float)Rc_Pwm_Inr_mine[RC_YAW]-1500,50))*k_px4_rc[3],-33,33);
+	#if DEBUG_IN_ROOM
+	en_vrc=1;	
+	#else
 	if(m100.Rc_gear>1600)//&&ALT_POS_SONAR2>0.32666)
 	en_vrc=1;
 	else
 	en_vrc=0;
-	if(en_vrc&&m100.Rc_mode>1600)
-	{  
-  px4_control_publish(tar_px4[0]*1,tar_px4[1]*1,tar_px4[2],tar_px4[3],m100_control_mode);
-  //px4_control_publish(1,0,0,0,m100_control_mode);
-  }else
-	px4_control_publish(tar_px4_rc[0],tar_px4_rc[1],tar_px4_rc[2],tar_px4_rc[3],m100_control_mode);
+	#endif
+		if(en_vrc&&m100.Rc_mode>1600)
+		px4_control_publish(tar_px4[0]*1,tar_px4[1]*1,tar_px4[2],tar_px4[3],m100_control_mode);
+		//px4_control_publish(1,0,0,0,m100_control_mode);
+		else
+		px4_control_publish(tar_px4_rc[0],tar_px4_rc[1],tar_px4_rc[2],tar_px4_rc[3],m100_control_mode);
   #else		
-	if(cnt_m100++>2-1){cnt_m100=0;
-	m100_data(0);
-	
+		if(cnt_m100++>2-1){cnt_m100=0;
+		m100_data(0);
 		
-	if(mode.auto_fly_up==1&&m100_Rc_gr==0)
-	{
-		m100_obtain_control_long(10);
-		m100_take_off_long(10);
-	}
-  
-	if(m100_Rc_gr==1&&mode.auto_fly_up==0)
-	{m100_land_control_long(10);}
-	m100_Rc_gr=mode.auto_fly_up;
-	
-  if(m100.Rc_gear<=-9000)//&&ALT_POS_SONAR2>0.32666)
-		en_vrc=1;
-  if(en_vrc&&m100.Rc_gear>-5000)
-	en_vrc=0;
-	if(en_vrc)
-	{   		
-	m100_obtain_control(10);
-	if(mode.en_dji_yaw)
-  m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],m100_control_mode); 
-  else	
-	m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);
-  //m100_contrl(1600,Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);
-	delay_ms(20); }
-	
-	if(en_vrc==0&&en_vrcr==1)
-		{m100_dis_control_long(5);}
+		if(mode.auto_fly_up==1&&m100_Rc_gr==0)
+		{
+			m100_obtain_control_long(10);
+			m100_take_off_long(10);
+		}
+		
+		if(m100_Rc_gr==1&&mode.auto_fly_up==0)
+		{m100_land_control_long(10);}
+		m100_Rc_gr=mode.auto_fly_up;
+		
+		if(m100.Rc_gear<=-9000)//&&ALT_POS_SONAR2>0.32666)
+			en_vrc=1;
+		if(en_vrc&&m100.Rc_gear>-5000)
+		en_vrc=0;
+		if(en_vrc)
+		{   		
+		m100_obtain_control(10);
+		if(mode.en_dji_yaw)
+		m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],m100_control_mode); 
+		else	
+		m100_contrl(Rc_Pwm_Out_mine_USE[1],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],m100_control_mode);
+		//m100_contrl(1600,Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[2],1500,m100_control_mode);
+		delay_ms(20); }
+		
+		if(en_vrc==0&&en_vrcr==1)
+			{m100_dis_control_long(5);}
 
-		en_vrcr=en_vrc;
-		
-	if(dji_rst)
-		m100_rst(10);
-	}
+			en_vrcr=en_vrc;
+			
+		if(dji_rst)
+			m100_rst(10);
+		}
 	#endif
 	
 	delay_ms(5);
@@ -855,8 +883,8 @@ void uart_task(void *pdata)
 											case 6:
 											data_per_uart1(
 											nav_Data.gps_ero_dis_lpf[0]/10,nav_Data.gps_ero_dis_lpf[1]/10,m100.spd[0]*100,
-											drone_local_pos[North]*100,drone_local_pos[East]*100,m100.spd[1]*100,
-											m100.H*100,m100.spd[2]*100,0,
+											drone_local_pos[North]*100,nav_land[PITr],nav_land[ROLr],
+											m100.spd[2]*100,(circle.y-120)*LIMIT(qr.check,0,1),(circle.x-160)*LIMIT(qr.check,0,1),
 											(int16_t)(thr_in_view*10.0),(int16_t)(thr_use*10.0),(int16_t)(Roll*10.0),0/10,0,0/10,0*0);break;														
 											default:break;
 											

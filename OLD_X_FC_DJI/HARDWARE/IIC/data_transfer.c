@@ -186,14 +186,14 @@ void ANO_DT_Data_Exchange(void)
 		 }else {sel[0]=0;
 		#if USE_HT_GROUND 
 		if(!fly_ready)	 	 
-    HT_DT_Send_RC(CH[2]+1500,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,qr.check,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
+    HT_DT_Send_RC(CH[2]+1500,CH[3]+1500,CH[0]+1500,CH[1]+1500,m100.STATUS,qr.check,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
 		else
-		HT_DT_Send_RC(thr_value+1000,CH[3]+1500,CH[0]+1500,CH[1]+1500,CH[4]+1500,qr.check,m100_data_refresh,m100.STATUS&&m100.GPS_STATUS,tar_need_to_check_odroid[2],state_v);	
+		HT_DT_Send_RC(thr_value+1000,CH[3]+1500,CH[0]+1500,CH[1]+1500,m100.STATUS,qr.check,m100_data_refresh,m100.STATUS&&m100.GPS_STATUS,tar_need_to_check_odroid[2],state_v);	
     #else			 
 		if(!fly_ready)	 
-		ANO_DT_Send_RCData(Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[1],CH[4]+1500,CH[5]+1500,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
+		ANO_DT_Send_RCData(Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[1],qr.check,m100.STATUS,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
 		else
-		ANO_DT_Send_RCData(Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[1],CH[4]+1500,CH[5]+1500,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
+		ANO_DT_Send_RCData(Rc_Pwm_Out_mine_USE[2],Rc_Pwm_Out_mine_USE[3],Rc_Pwm_Out_mine_USE[0],Rc_Pwm_Out_mine_USE[1],qr.check,m100.STATUS,m100_data_refresh&&m100.GPS_STATUS,m100.STATUS,tar_need_to_check_odroid[2],state_v);
 			#endif 
 		 }
 	
@@ -275,6 +275,7 @@ void ANO_DT_Data_Exchange(void)
 		 HT_DT_Send_GPS(temp_j,temp_w,m100.GPS_STATUS,1,2);
 		 #else
 		 ANO_DT_Send_Location(state_v,m100.GPS_STATUS,temp_j,temp_w,0);
+		 ANO_DT_Send_Power(m100.Bat*100, 0);
 		 #endif
 		}
 		if(f.send_pid1)

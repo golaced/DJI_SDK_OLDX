@@ -204,33 +204,33 @@ if(cnt_gps++>1){cnt_gps=0;
 if(state_set_point!=0)
 {
 idle_state=0;
-switch(state_set_point)
-{
-	case 1:
-		    if(flag_cnt_gps)
-				LEDRGB_COLOR(BLACK);		
-				else
-				LEDRGB_COLOR(RED);
-				fc_save_gps_beep=21;
-	break;
-	case 3:
-		 if(flag_cnt_gps)
-				LEDRGB_COLOR(BLACK);		
-				else
-				LEDRGB_COLOR(BLUE);
-				fc_save_gps_beep=22;
-	break;
-	case 5:
-		 if(flag_cnt_gps)
-				LEDRGB_COLOR(BLACK);		
-				else
-				LEDRGB_COLOR(WHITE);
-				fc_save_gps_beep=23;
-	break;
-	default:
-		LEDRGB_COLOR(BLACK);	
-  break;
-}
+	switch(state_set_point)
+	{
+		case 1:
+					if(flag_cnt_gps)
+					LEDRGB_COLOR(BLACK);		
+					else
+					LEDRGB_COLOR(RED);
+					fc_save_gps_beep=21;
+		break;
+		case 3:
+			 if(flag_cnt_gps)
+					LEDRGB_COLOR(BLACK);		
+					else
+					LEDRGB_COLOR(BLUE);
+					fc_save_gps_beep=23;
+		break;
+		case 5:
+			 if(flag_cnt_gps)
+					LEDRGB_COLOR(BLACK);		
+					else
+					LEDRGB_COLOR(WHITE);
+					fc_save_gps_beep=25;
+		break;
+		default:
+			LEDRGB_COLOR(BLACK);	
+		break;
+	}
   Play_Music_Task(BEEP_GPS_SAVE,dt);
 }
 else {

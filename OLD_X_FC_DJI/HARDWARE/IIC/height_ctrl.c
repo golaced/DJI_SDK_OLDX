@@ -32,7 +32,6 @@ float exp_height=1200+OFF_HEIGHT_ALL,exp_height_check=1366+OFF_HEIGHT_ALL,//1466
 	exp_height_shoot_off=0;
 
 #define OFF_HEIGHT_ALL_FRONE 0
-#define DEAD_NAV_RC 80
 #if USE_M100
 	float exp_height_head=1800+300+OFF_HEIGHT_ALL_FRONE,exp_height_head_scan=2150+400+OFF_HEIGHT_ALL_FRONE;
 	#if RISK_MODE

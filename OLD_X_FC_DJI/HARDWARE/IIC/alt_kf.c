@@ -1090,12 +1090,16 @@ static void altDoPresUpdate(float measuredPres,float dt) {
 	  srcdkfMeasurementUpdate(altUkfData_sonar.kf, 0, &sonar_temp, 1, 1, &noise, altUkfPresUpdate);
 	 
 	  ALT_POS_SONAR3=sonar_temp*K_SONAR/10+(1-K_SONAR/10)*(ALT_POS_SONAR3-0.01*0);//ALT_VEL_BMP_EKF);
-	 if(POS_SONAR_TEST!=0)
-		 ALT_POS_SONAR2=POS_SONAR_TEST;
-	 else
-	  ALT_POS_SONAR2=ALT_POS_SONAR3;
-	 
-	 ALT_POS_SONAR2=LIMIT(ALT_POS_SONAR2,0,8);
+			#if USE_PX4
+        ALT_POS_SONAR2=LIMIT((float)ultra_distance/1000.,0,4);
+			#else
+				if(POS_SONAR_TEST!=0)
+				ALT_POS_SONAR2=POS_SONAR_TEST;
+				else
+				ALT_POS_SONAR2=ALT_POS_SONAR3;
+
+				ALT_POS_SONAR2=LIMIT(ALT_POS_SONAR2,0,8);
+			#endif
 	  #else
 	
 	 
