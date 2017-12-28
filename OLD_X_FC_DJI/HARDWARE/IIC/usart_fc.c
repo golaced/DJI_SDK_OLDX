@@ -533,6 +533,7 @@ u8 m100_data_refresh;
 		DJI_CONNECT=1;
 		flag=!flag;
 		LEDRGB(12,flag);
+		m100.rx_dt=Get_Cycle_T(GET_T_M100); 	
 	  m100.Pit=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5))/10.;
 		m100.Rol=(float)((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/10.;
 		m100.Yaw=(float)((int16_t)(*(data_buf+8)<<8)|*(data_buf+9))/10.;
@@ -567,7 +568,7 @@ u8 m100_data_refresh;
 		m100.GPS_STATUS=*(data_buf+41);
 		m100.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
 		m100.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
-		m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
+		m100.H_Spd=m100.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
 	}else if(*(data_buf+2)==0x05)
 	{
 	if(*(data_buf+4)==66)
@@ -584,7 +585,7 @@ u8 m100_data_refresh;
 	qr.center_y=(float)((int16_t)(*(data_buf+17)<<8)|*(data_buf+18));
 	qr.yaw=(float)((int16_t)(*(data_buf+19)<<8)|*(data_buf+20));
 	}
-	#else
+	#else//M100
 	if(*(data_buf+2)==0x01)//
   { dji_miss_cnt=0;
 		DJI_CONNECT=1;
@@ -840,6 +841,9 @@ float k_laser=0.8;
 float rate_gps_board;
  void Data_Receive_Anl3(u8 *data_buf,u8 num)
 {
+	double zen,xiao;
+	static float m100_h_off;
+	static float m100_hr,m100_attr[3]; 
 	vs16 rc_value_temp,rc_value_temp1;
 	u8 sum = 0;
 	u8 i;
@@ -861,16 +865,6 @@ float rate_gps_board;
 	circle.r=(int8_t)(*(data_buf+10));
 	track.check=(int8_t)(*(data_buf+11));
 	}	
-	else if(*(data_buf+2)==0x01)//SLAM_frame
-  {
-  imu_nav.gps.Y_UKF=((int16_t)(*(data_buf+4)<<8)|*(data_buf+5));
-	imu_nav.gps.X_UKF=((int16_t)(*(data_buf+6)<<8)|*(data_buf+7));
-	imu_nav.gps.Y_O=  ((int16_t)(*(data_buf+8)<<8)|*(data_buf+9));
-	imu_nav.gps.X_O=  ((int16_t)(*(data_buf+10)<<8)|*(data_buf+11));
-	imu_nav.gps.J=  ((int16_t)(*(data_buf+12)<<8)|*(data_buf+13));
-	imu_nav.gps.W=  ((int16_t)(*(data_buf+14)<<8)|*(data_buf+15));	
-		
-	}		
   else if(*(data_buf+2)==0x03)//Num
   {
 	circle.connect=1;
@@ -918,40 +912,29 @@ float rate_gps_board;
 		//circle.map[i][3]=(int16_t)(*(data_buf+8+i*4));//r
 		}
 		}
-	
-	else if(*(data_buf+2)==0x21)//Qr land
+	/*else if(*(data_buf+2)==0x21)//Qr land
   {
-		
-	qr.connect=1;
-	circle.connect=1;
-	circle.lose_cnt=0;
+	qr.connect=circle.connect=1;
 	qr.lose_cnt=0;
-	qr.check=track.check=circle.check=(*(data_buf+4));///10.;
-	qr.x=Moving_Median(12,10,((int16_t)(*(data_buf+5)<<8)|*(data_buf+6)));
-	qr.y=Moving_Median(13,10,((int16_t)(*(data_buf+7)<<8)|*(data_buf+8)));
-	qr.z=Moving_Median(14,10,((int16_t)(*(data_buf+9)<<8)|*(data_buf+10)));
-	qr.pit=((int16_t)(*(data_buf+11)<<8)|*(data_buf+12));
-	qr.rol=((int16_t)(*(data_buf+13)<<8)|*(data_buf+14));
-	qr.yaw=Moving_Median(15,5,((int16_t)(*(data_buf+15)<<8)|*(data_buf+16)));
+	track.check=circle.check=qr.check=*(data_buf+4);	
+	qr.x=(int16_t)(*(data_buf+5)<<8)|*(data_buf+6);
+	qr.y=(int16_t)(*(data_buf+7)<<8)|*(data_buf+8);
+	qr.z=(int16_t)(*(data_buf+9)<<8)|*(data_buf+10);
+	qr.pit=(int16_t)(*(data_buf+11)<<8)|*(data_buf+12);
+	qr.rol=(int16_t)(*(data_buf+13)<<8)|*(data_buf+14);
+	qr.yaw=(int16_t)(*(data_buf+15)<<8)|*(data_buf+16);
 	
 	if(qr.check){
 		int temp=((int16_t)(*(data_buf+17)<<8)|*(data_buf+18));
 		if(ABS(temp)<1000)
-		circle.x=Moving_Median(10,5,temp);
+		circle.x=qr.pix_x=temp;
 		temp=((int16_t)(*(data_buf+19)<<8)|*(data_buf+20));
 		if(ABS(temp)<1000)
-		circle.y=Moving_Median(11,5,temp);	
+		circle.y=qr.pix_y=temp;	
 	}
-//	/*1  0
-//	
-//	  2  3*/
-//	avoid_color[0]=*(data_buf+21);	
-//	avoid_color[1]=*(data_buf+22);
-//	avoid_color[2]=*(data_buf+23);
-//	avoid_color[3]=*(data_buf+24);
 	qr.center_x=-((int16_t)(*(data_buf+25)<<8)|*(data_buf+26));	
 	qr.center_y=-((int16_t)(*(data_buf+27)<<8)|*(data_buf+28));
-	}
+	}*/
 }
  
 
@@ -1072,6 +1055,8 @@ void CopeSerialData(unsigned char ucData)
 
  void Data_Receive_Anl41(u8 *data_buf,u8 num)
 {
+	double zen,xiao;
+	static float m100_hr,m100_attr[3];
 	vs16 rc_value_temp,rc_value_temp1;
 	u8 sum = 0;
 	u8 i;
@@ -1096,6 +1081,73 @@ void CopeSerialData(unsigned char ucData)
 	Yaw_yun_rate=(float)((int16_t)(*(data_buf+20)<<8)|*(data_buf+21))/100.;
 	SONAR_HEAD_CHECK[0]=1;
 	}	
+	else 	if(*(data_buf+2)==0x01)//
+  { px4.loss_cnt=0;
+		px4.connect=1;
+	 	px4.rx_dt=Get_Cycle_T(GET_T_PX4); 	
+
+	  px4.Pit=(float)((int16_t)(*(data_buf+4)<<8)|*(data_buf+5))/10.;
+		px4.Rol=(float)((int16_t)(*(data_buf+6)<<8)|*(data_buf+7))/10.;
+		px4.Yaw=To_180_degrees(1*(float)((int16_t)(*(data_buf+8)<<8)|*(data_buf+9))/10.);
+		
+		px4.H=(float)((int16_t)(*(data_buf+10)<<8)|*(data_buf+11))/1000.;
+		
+		if(px4.H!=m100_hr||m100_attr[0]!=px4.Pit||m100_attr[1]!=px4.Rol||m100_attr[2]!=px4.Yaw)
+		{px4.cnt_m100_data_refresh=0;
+		 px4.m100_data_refresh=1;
+		}
+		m100_hr=px4.H;
+		m100_attr[0]=px4.Pit;
+		m100_attr[1]=px4.Rol;
+		m100_attr[2]=px4.Yaw;
+		
+		px4.H_Spd=(float)((int16_t)(*(data_buf+12)<<8)|*(data_buf+13))/1000.;
+		zen=(*(data_buf+14)<<8)|*(data_buf+15);
+		xiao=(double)((u32)(*(data_buf+16)<<24)|(*(data_buf+17)<<16)|(*(data_buf+18)<<8)|*(data_buf+19))/1000000000.;
+		px4.Lat=zen+xiao;
+		zen=(*(data_buf+20)<<8)|*(data_buf+21);
+		xiao=(double)((u32)(*(data_buf+22)<<24)|(*(data_buf+23)<<16)|(*(data_buf+24)<<8)|*(data_buf+25))/1000000000.;
+		px4.Lon=zen+xiao;
+		
+		px4.Bat=(float)((int16_t)(*(data_buf+26)<<8)|*(data_buf+27));
+		px4.Rc_rol=(float)((int16_t)(*(data_buf+28)<<8)|*(data_buf+29));//rol
+		px4.Rc_yaw=(float)((int16_t)(*(data_buf+30)<<8)|*(data_buf+31));//yaw
+		px4.Rc_gear=(float)((int16_t)(*(data_buf+32)<<8)|*(data_buf+33));//gear
+		px4.Rc_mode=(float)((int16_t)(*(data_buf+34)<<8)|*(data_buf+35));//mode
+		px4.Rc_thr=(float)((int16_t)(*(data_buf+36)<<8)|*(data_buf+37));//thr
+		px4.Rc_pit=(float)((int16_t)(*(data_buf+38)<<8)|*(data_buf+39));//pit
+		px4.STATUS=*(data_buf+40);		
+		if(px4.Lat!=0&&px4.Lon!=0)
+		px4.GPS_STATUS=3;
+    else		
+		px4.GPS_STATUS=*(data_buf+41);
+		px4.spd[0]=(float)((int16_t)(*(data_buf+42)<<8)|*(data_buf+43))/1000.;
+		px4.spd[1]=(float)((int16_t)(*(data_buf+44)<<8)|*(data_buf+45))/1000.;
+		px4.spd[2]=(float)((int16_t)(*(data_buf+46)<<8)|*(data_buf+47))/1000.;
+	}
+	/*else if(*(data_buf+2)==0x21)//Qr land
+  {
+	qr.connect=circle.connect=1;
+	qr.lose_cnt=0;
+	track.check=circle.check=qr.check=*(data_buf+4);	
+	qr.x=(int16_t)(*(data_buf+5)<<8)|*(data_buf+6);
+	qr.y=(int16_t)(*(data_buf+7)<<8)|*(data_buf+8);
+	qr.z=(int16_t)(*(data_buf+9)<<8)|*(data_buf+10);
+	qr.pit=(int16_t)(*(data_buf+11)<<8)|*(data_buf+12);
+	qr.rol=(int16_t)(*(data_buf+13)<<8)|*(data_buf+14);
+	qr.yaw=(int16_t)(*(data_buf+15)<<8)|*(data_buf+16);
+	
+	if(qr.check){
+		int temp=((int16_t)(*(data_buf+17)<<8)|*(data_buf+18));
+		if(ABS(temp)<1000)
+		circle.x=qr.pix_x=temp;
+		temp=((int16_t)(*(data_buf+19)<<8)|*(data_buf+20));
+		if(ABS(temp)<1000)
+		circle.y=qr.pix_y=temp;	
+	}
+	qr.center_x=-((int16_t)(*(data_buf+25)<<8)|*(data_buf+26));	
+	qr.center_y=-((int16_t)(*(data_buf+27)<<8)|*(data_buf+28));
+	}*/
 }
 
 u8 Rx_Buf41[256];	//串口接收缓存
@@ -1121,6 +1173,9 @@ void USART3_IRQHandler(void)
 		USART_ClearITPendingBit(USART3,USART_IT_RXNE);//清除中断标志
 
 		com_data = USART3->DR;
+		#if PX4_VER1
+		UsartSend_GOL_LINK(com_data);
+		#endif
 		//CopeSerialData(com_data);
     if(RxState41==0&&com_data==0xAA)
 		{

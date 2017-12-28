@@ -761,6 +761,21 @@
           <WinNumber>2</WinNumber>
           <ItemText>DJ_TEST,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>91</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>px4,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>92</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>m100,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>93</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>m100_control_mode,0x0A</ItemText>
+        </Ww>
       </WatchWindow2>
       <MemoryWindow1>
         <Mm>
@@ -1487,8 +1502,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\HARDWARE\IIC\rc_mine.c</PathWithFileName>
-      <FilenameWithoutPath>rc_mine.c</FilenameWithoutPath>
+      <PathWithFileName>..\HARDWARE\IIC\rc.c</PathWithFileName>
+      <FilenameWithoutPath>rc.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -1499,8 +1514,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\HARDWARE\IIC\rc.c</PathWithFileName>
-      <FilenameWithoutPath>rc.c</FilenameWithoutPath>
+      <PathWithFileName>..\HARDWARE\IIC\rc_mine.c</PathWithFileName>
+      <FilenameWithoutPath>rc_mine.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

@@ -272,7 +272,10 @@ void Flow_set_tar(float set);
 #include "m100.h"
 #define TEST_GPS 0
 #define USE_M100 1
-#define USE_PX4 1
+#define USE_PX4 1//PX4 without quadboard
+#define PX4_VER1 1//PX4 with quadboard board
+
+#define USE_VER
 #define SPD_GAIN_EQUAL 1 //导航增益对称
 
 #define USE_MAP 1 //使用MAP信息
@@ -281,8 +284,10 @@ void Flow_set_tar(float set);
 #define SHOOT_USE_YUN 0//仅仅使用云台旋转对目标
 #define DEBUG_IN_ROOM 0//屋内测试
 #define PAN_TEST 0    //云台强制角度测试
-#define QR_LAND_USE_MARK_GPS 0 //0->垂直镜头返航
+#define QR_LAND_USE_MARK_GPS 1 //0->跟踪返航
+#define GPS_NAV_TURN_YAW  1 //航点旋转机头
 #define RISK_MODE 0   //冒险模式
+
 
 #if USE_M100
 #if USE_PX4
@@ -362,7 +367,8 @@ extern float SHOOT_PWM_OFF0,SHOOT_PWM_OFF1,SHOOT_PWM_DEAD0,SHOOT_PWM_DEAD1, Pitc
 //#define DEBUG_GPS_NAV//NAN
 //#define DEBUG_HOLD_HEIGHT
 //#define DEBUG_HOLD_WALL
-#define DEBUG_QR_LAND  //UP->SU_TO_CHECK_POS(6)->SD_TO_HOME(26)->SD_CIRCLE_MID_DOWN(19)
+//#define DEBUG_QR_LAND  //UP->SU_TO_CHECK_POS(6)->SD_TO_HOME(26)->SD_CIRCLE_MID_DOWN(19)
+#define DEBUG_QR_TRACK
 //#define DEBUG_QR_LAND_DIR //原地起降测试 
 //#define DEBUG_HOVER_GPS   
 //#define DEBUG_YAW_TUNNING //航向调参模式

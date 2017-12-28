@@ -663,14 +663,14 @@
           <GroupName>COMMUNICATION</GroupName>
           <Files>
             <File>
-              <FileName>rc_mine.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\IIC\rc_mine.c</FilePath>
-            </File>
-            <File>
               <FileName>rc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\IIC\rc.c</FilePath>
+            </File>
+            <File>
+              <FileName>rc_mine.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IIC\rc_mine.c</FilePath>
             </File>
             <File>
               <FileName>usart_fc.c</FileName>

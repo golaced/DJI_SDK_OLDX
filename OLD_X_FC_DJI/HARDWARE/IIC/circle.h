@@ -7,13 +7,13 @@
 {
  int x,y,z;
  float pit,rol , yaw ;
-	int center_x,center_y;
+	int center_x,center_y,dis;
  int r;
  int x_flp,y_flp;
  u8 check;
  u8 connect,lose_cnt;
  int control[2];
- float control_k;
+ float control_k,pix_x,pix_y;
  float control_k_miss; 
 	float control_yaw,control_yaw_pix;
  float forward;
@@ -56,8 +56,16 @@ Flight status val	status name
  u8 refresh;
  u8 mems_board_connect;
  u16 mems_loss_cnt;
+ float rx_dt;
+ u8 control_connect;
+ u16 control_loss;
+ u8 px4_tar_mode;
+ float control_spd[3];
+ float control_yaw;
+ u8 connect,m100_data_refresh;
+ u16 loss_cnt,cnt_m100_data_refresh;
 }M100;
-extern M100 m100;
+extern M100 m100,px4;
 #define MAP_NUM 20
 extern float target_map[MAP_NUM][5];
 void Clear_map(void);

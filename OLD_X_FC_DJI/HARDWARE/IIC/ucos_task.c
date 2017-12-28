@@ -426,8 +426,7 @@ void inner_task(void *pdata)
 		#else		
 		if(state_v==SD_CIRCLE_MID_DOWN)
 			PWM_DJ[0]=PWM_DJ_DOWN;//Pitch_DJ		
-		#endif		
-		
+		#endif				
   #endif
 	
 	#if PAN_TEST
@@ -712,7 +711,7 @@ void flow_task(void *pdata)
 OS_STK M100_TASK_STK[M100_STK_SIZE];
 
 u8 en_vrc;
-u8 m100_control_mode = 0x4A;
+u8 m100_control_mode = 0x4A;//0x66 mission
 float k_m100[5]={1,1,1,1,1};//pit rol thr yaw avoid
 float k_px4[4]={0.008,0.008,0.008,0.86};
 float k_px4_rc[4]={0.008,0.008,0.005,0.86};
@@ -744,12 +743,13 @@ void m100_task(void *pdata)
 	else
 	en_vrc=0;
 	#endif
+	  m100.px4_tar_mode=m100_control_mode;
 		if(en_vrc&&m100.Rc_mode>1600)
 		px4_control_publish(tar_px4[0]*1,tar_px4[1]*1,tar_px4[2],tar_px4[3],m100_control_mode);
 		//px4_control_publish(1,0,0,0,m100_control_mode);
 		else
 		px4_control_publish(tar_px4_rc[0],tar_px4_rc[1],tar_px4_rc[2],tar_px4_rc[3],m100_control_mode);
-  #else		
+  #else		//M100
 		if(cnt_m100++>2-1){cnt_m100=0;
 		m100_data(0);
 		
@@ -832,7 +832,11 @@ void uart_task(void *pdata)
 						#endif
 							}		
 							
+						#if PX4_VER1
+						m100_contrl_px4(m100.control_spd[0],m100.control_spd[1],m100.control_spd[2],m100.control_yaw,m100.px4_tar_mode);	
+						#else
 						UsartSend_GOL_LINK_NAV(0xAA);//MEMS	
+						#endif
 							
 				if(UART_UP_LOAD_SEL_FORCE!=0)
           UART_UP_LOAD_SEL=UART_UP_LOAD_SEL_FORCE;				 

@@ -28,7 +28,7 @@ float exp_height_speed;
 float exp_height=1200+OFF_HEIGHT_ALL,exp_height_check=1366+OFF_HEIGHT_ALL,//1466,//
 											exp_height_front=1266+OFF_HEIGHT_ALL,//1250,
 											 exp_height_back=965+OFF_HEIGHT_ALL,//1100,//1050,
-                       exp_height_home=4000,
+                       exp_height_home=3680,
 	exp_height_shoot_off=0;
 
 #define OFF_HEIGHT_ALL_FRONE 0

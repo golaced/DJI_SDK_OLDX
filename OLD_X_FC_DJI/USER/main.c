@@ -103,7 +103,12 @@ int main(void)
 	#if EN_DMA_UART4 
 	MYDMA_Config(DMA1_Stream4,DMA_Channel_4,(u32)&UART4->DR,(u32)SendBuff4,SEND_BUF_SIZE4+2,0);//DMA2,STEAM7,CH4,?????1,????SendBuff,???:SEND_BUF_SIZE.
 	#endif
-	Usart3_Init(115200);    	//超声波初始化Uart5  --> IMU DJ ---MEMS
+	#if PX4_VER1
+	Usart3_Init(115200);    	//超声波初始化Uart5  --> IMU DJ ---MEMS -->px4
+	#else
+	Usart3_Init(115200);    	//超声波初始化Uart5  --> IMU DJ ---MEMS -->px4
+	#endif
+	
 	#if EN_DMA_UART3
 	MYDMA_Config(DMA1_Stream3,DMA_Channel_4,(u32)&USART3->DR,(u32)SendBuff3,SEND_BUF_SIZE3+2,2);//DMA2,STEAM7,CH4,外设为串口1,存储器为SendBuff,长度为:SEND_BUF_SIZE.
   #endif

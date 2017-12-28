@@ -32,5 +32,6 @@ uint32_t micros(void);
 #define GET_T_BARO_UKF 4
 #define GET_T_HIGH_CONTROL_I 9
 #define GET_T_HIGH_CONTROL_O 10
-
+#define GET_T_M100 11
+#define GET_T_PX4 12
 #endif

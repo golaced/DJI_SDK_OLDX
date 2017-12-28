@@ -2,7 +2,6 @@
 #include "circle.h"
 #include "usart.h"
 
-
 void m100_rst(u16 delay)
 {
 UsartSend_M100(0xFA);
@@ -259,6 +258,31 @@ u16 i;
 }
 
 
+void m100_contrl_px4(float x,float y,float z,float yaw,u8 mode)
+{
+	vs16 _temp;
+	UsartSend_GOL_LINK_NAV(0xFA);
+	UsartSend_GOL_LINK_NAV(0xFB);
+	UsartSend_GOL_LINK_NAV(0x04);
+	UsartSend_GOL_LINK_NAV(0x01);
+
+	UsartSend_GOL_LINK_NAV(mode);	
+	_temp=x*1000;
+	UsartSend_GOL_LINK_NAV(BYTE1(_temp));
+	UsartSend_GOL_LINK_NAV(BYTE0(_temp));
+	_temp=y*1000;
+	UsartSend_GOL_LINK_NAV(BYTE1(_temp));
+	UsartSend_GOL_LINK_NAV(BYTE0(_temp));
+	_temp=z*1000;
+	UsartSend_GOL_LINK_NAV(BYTE1(_temp));
+	UsartSend_GOL_LINK_NAV(BYTE0(_temp));
+	_temp=yaw*100;
+	UsartSend_GOL_LINK_NAV(BYTE1(_temp));
+	UsartSend_GOL_LINK_NAV(BYTE0(_temp));
+
+	UsartSend_GOL_LINK_NAV(0xFE);	
+}
+
 void px4_control_publish(float x,float y,float z,float yaw,u8 mode)
 {
   u8 i;	u8 sum = 0;
@@ -269,7 +293,10 @@ void px4_control_publish(float x,float y,float z,float yaw,u8 mode)
 	data_to_send[_cnt++]=0xAF;
 	data_to_send[_cnt++]=0x04;//功能字
 	data_to_send[_cnt++]=0;//数据量
-	
+	m100.control_spd[0]=x;
+	m100.control_spd[1]=y;
+	m100.control_spd[2]=z;
+	m100.control_yaw=yaw;
 	_temp = mode;
 	data_to_send[_cnt++]=BYTE0(_temp);
 	_temp = (vs16)(x*1000);
@@ -289,5 +316,7 @@ void px4_control_publish(float x,float y,float z,float yaw,u8 mode)
 	for( i=0;i<_cnt;i++)
 		sum += data_to_send[i];
 	data_to_send[_cnt++] = sum;
+	#if !PX4_VER1
 	Send_Data_M100(data_to_send, _cnt);
+	#endif
 }

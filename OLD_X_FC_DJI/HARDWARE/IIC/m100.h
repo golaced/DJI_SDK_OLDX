@@ -25,5 +25,6 @@ void m100_contrl(float x,float y,float z,float yaw,u8 mode);
 void m100_data(u16 delay);
 void m100_rst(u16 delay);
 void px4_control_publish(float x,float y,float z,float yaw,u8 mode);
+void m100_contrl_px4(float x,float y,float z,float yaw,u8 mode);
 #endif
 

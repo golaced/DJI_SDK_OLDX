@@ -3,7 +3,7 @@
 #include "alt_kf.h"
 
 CIRCLE circle,track,mouse;
-M100 m100;
+M100 m100,px4;
 float nav_circle[2],nav_circle_last[2];
 /*
         y add (0~256)  1
@@ -267,7 +267,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		gps_pid.ki=0.00;//01;
 		gps_pid.kd=1.888;
 		
-		qr_pid.kp=0.668;//0.2;
+		qr_pid.kp=0.56;//0.2;
 		qr_pid.ki=0.00;//01;
 		qr_pid.kd=1.888/2;
 	}
@@ -440,6 +440,7 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 	Estimate_land_marker_local_position( qr_posx, qr_posy, qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
 	//没有3d信息的qr位置 会随摄像头旋转变化 适用与垂直
 	Estimate_land_marker_local_position1((float)qr.center_x/100., (float)qr.center_y/100., qr_yaw, drone_local_pos[North], drone_local_pos[East], yaw_use_gimbal_v, T);
+	//转换二维码局部位置到全球坐标系
   CalcGlobalLocation(qr_local_pos[North],qr_local_pos[East],gps_local_cor_zero[North], gps_local_cor_zero[East],&qr_gps_pos[0],&qr_gps_pos[1]);
 	}
 	
@@ -547,17 +548,18 @@ void  GPS_hold(nmea_msg *gpsx_in,float T)
 		qr_z=qr.z;
 	if(state_v==SD_CIRCLE_MID_DOWN&&mode.land_by_pix&&mode.en_qr_land){
 			if(qr.check&&qr.connect){
-			ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,5)*LIMIT(((float)qr_z/100.),0,2);
-			ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,5)*LIMIT(((float)qr_z/100.),0,2);	
-			out_temp[ROLr]=ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd;
-			out_temp[PITr]=ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd;
+			ero_qr_pix[ROLr]=my_deathzoom(circle.x-160,15)*LIMIT(((float)qr_z/100.),0,3);
+			ero_qr_pix[PITr]=-my_deathzoom(circle.y-120,15)*LIMIT(((float)qr_z/100.),0,3);	
+			circle.dis=sqrt(pow(circle.x-160,2)+pow(circle.y-120,2));	
+			out_temp[ROLr]=LIMIT(ero_qr_pix[ROLr]*qr_pid.kp+(ero_qr_pix[ROLr] - ero_qr_pixr[ROLr])*qr_pid.kd,-MAX_GPS,MAX_GPS);
+			out_temp[PITr]=LIMIT(ero_qr_pix[PITr]*qr_pid.kp+(ero_qr_pix[PITr] - ero_qr_pixr[PITr])*qr_pid.kd,-MAX_GPS,MAX_GPS);
 			ero_qr_pixr[ROLr]=ero_qr_pix[ROLr];	
 			ero_qr_pixr[PITr]=ero_qr_pix[PITr];	
 			}
 			else
 			{
 			 //out_temp[ROLr]=out_temp[PITr]=0;	
-			 ero_qr_pixr[ROLr]=ero_qr_pixr[PITr]=0;		
+			 circle.dis=ero_qr_pixr[ROLr]=ero_qr_pixr[PITr]=0;		
 			}		
   }
 	//final output  0  ROL  1 PIT
